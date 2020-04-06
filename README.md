@@ -8,7 +8,8 @@ this project is my clone secondary development version, the  origin project read
 
 
 ## Features
-- [ ] support python server & client 
+- [x] support python server & client 
+- [ ] fix the online status of python server, display in web UI 
 
 
 
