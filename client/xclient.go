@@ -2,6 +2,7 @@ package client
 
 import (
 	"bufio"
+	"log"
 	"context"
 	"errors"
 	"io"
@@ -18,6 +19,7 @@ import (
 	"github.com/smallnest/rpcx/protocol"
 	"github.com/smallnest/rpcx/serverplugin"
 	"github.com/smallnest/rpcx/share"
+	. "github.com/halokid/ColorfulRabbit"
 )
 
 const (
@@ -111,12 +113,24 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 
 	pairs := discovery.GetServices()
 	servers := make(map[string]string, len(pairs))
-	for _, p := range pairs {
+	kCk := ""
+	for i, p := range pairs {
+		if i == 0 {
+			kCk = p.Key	
+		}
 		servers[p.Key] = p.Value
 	}
 	filterByStateAndGroup(client.option.Group, servers)
 
 	client.servers = servers
+	// 检查第一个key属于什么typ
+	serCk := servers[kCk]
+	typ := GetSpIdx(serCk, "&", -1)
+	if typ == "typ=py" {
+		// python服务端
+	}
+	
+	log.Println("找到的servers:", servers)
 	if selectMode != Closest && selectMode != SelectByUser {
 		client.selector = newSelector(selectMode, servers)
 	}
