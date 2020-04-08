@@ -128,6 +128,7 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 	typ := GetSpIdx(serCk, "&", -1)
 	if typ == "typ=py" {
 		// python服务端
+		return "pyTyp"
 	}
 	
 	log.Println("找到的servers:", servers)
