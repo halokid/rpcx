@@ -19,7 +19,7 @@ import (
 	"github.com/smallnest/rpcx/protocol"
 	"github.com/smallnest/rpcx/serverplugin"
 	"github.com/smallnest/rpcx/share"
-	. "github.com/halokid/ColorfulRabbit"
+	//. "github.com/halokid/ColorfulRabbit"
 )
 
 const (
@@ -52,6 +52,10 @@ type XClient interface {
 	SendFile(ctx context.Context, fileName string, rateInBytesPerSecond int64) error
 	DownloadFile(ctx context.Context, requestFileName string, saveTo io.Writer) error
 	Close() error
+
+	// 非go语言
+	IsGo() bool
+	GetNoGoServers() map[string]string
 }
 
 // KVPair contains a key and a string.
@@ -98,6 +102,10 @@ type xClient struct {
 	ch chan []*KVPair
 
 	serverMessageChan chan<- *protocol.Message
+	
+	// 非go的标识
+	isGo bool
+	noGoServers map[string]string
 }
 
 // NewXClient creates a XClient that supports service discovery and service governance.
@@ -110,9 +118,11 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 		cachedClient: make(map[string]RPCClient),
 		option:       option,
 	}
+	client.isGo = true
 
 	pairs := discovery.GetServices()
 	servers := make(map[string]string, len(pairs))
+	/**
 	kCk := ""
 	for i, p := range pairs {
 		if i == 0 {
@@ -120,18 +130,33 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 		}
 		servers[p.Key] = p.Value
 	}
+	*/
+	for _, p := range pairs {
+		servers[p.Key] = p.Value
+	}
 	filterByStateAndGroup(client.option.Group, servers)
 
 	client.servers = servers
+	
 	// 检查第一个key属于什么typ
-	serCk := servers[kCk]
-	typ := GetSpIdx(serCk, "&", -1)
-	if typ == "typ=py" {
+	//serCk := servers[kCk]
+	//typ := GetSpIdx(serCk, "&", -1)
+	//if typ == "typ=py" {
 		// python服务端
-		return "pyTyp"
-	}
+		//return "pyTyp"
+	//}
 	
 	log.Println("找到的servers:", servers)
+	for _, v := range servers {
+		if strings.Index(v, "typ=py") != -1 {
+			// 为非go语言
+			client.isGo = false 
+			client.noGoServers = servers
+			break
+		} 
+	}
+	
+
 	if selectMode != Closest && selectMode != SelectByUser {
 		client.selector = newSelector(selectMode, servers)
 	}
@@ -978,3 +1003,17 @@ func (c *xClient) Close() error {
 	}
 	return nil
 }
+
+
+func (c *xClient) IsGo() bool {
+	// 检查是否为go服务端	
+	return c.isGo
+}
+
+func (c *xClient) GetNoGoServers() map[string]string {
+	return c.noGoServers
+}
+
+
+
+
