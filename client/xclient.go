@@ -2,7 +2,6 @@ package client
 
 import (
 	"bufio"
-	"log"
 	"context"
 	"errors"
 	"io"
@@ -146,7 +145,7 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 		//return "pyTyp"
 	//}
 	
-	log.Println("找到的servers:", servers)
+	//log.Println("找到的servers:", servers)
 	for _, v := range servers {
 		if strings.Index(v, "typ=py") != -1 {
 			// 为非go语言

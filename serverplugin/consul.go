@@ -72,8 +72,10 @@ func (p *ConsulRegisterPlugin) Start() error {
 	}
 
 	if p.UpdateInterval > 0 {
+		// todo: 根据服务注册时候设定的时间间隔，定时写入一些服务信息
 		ticker := time.NewTicker(p.UpdateInterval)
 		go func() {
+			// 此gor一直在跑， 所以kv一直不close， 在consul看到的kv的状态是locked
 			defer p.kv.Close()
 
 			// refresh service TTL
@@ -81,7 +83,7 @@ func (p *ConsulRegisterPlugin) Start() error {
 				select {
 				case <-p.dying:
 					close(p.done)
-					return
+					return						// todo: 退出for select
 				case <-ticker.C:
 					var data []byte
 					if p.Metrics != nil {
@@ -94,12 +96,13 @@ func (p *ConsulRegisterPlugin) Start() error {
 						nodePath := fmt.Sprintf("%s/%s/%s", p.BasePath, name, p.ServiceAddress)
 						kvPaire, err := p.kv.Get(nodePath)
 						if err != nil {
+							// 如果获取不了key
 							log.Warnf("can't get data of node: %s, will re-create, because of %v", nodePath, err.Error())
 
 							p.metasLock.RLock()
 							meta := p.metas[name]
 							p.metasLock.RUnlock()
-
+							// 超时时间设置为配置的TTL的 3倍
 							err = p.kv.Put(nodePath, []byte(meta), &store.WriteOptions{TTL: p.UpdateInterval * 3})
 							if err != nil {
 								log.Errorf("cannot re-create consul path %s: %v", nodePath, err)

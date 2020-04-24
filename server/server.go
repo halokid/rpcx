@@ -166,7 +166,9 @@ func (s *Server) getDoneChan() <-chan struct{} {
 }
 
 func (s *Server) startShutdownListener() {
+	// 监听服务端是否shutdown, 假如shutdown则启动stop()， stop()会delete服务注册数据
 	go func(s *Server) {
+		// 捕捉进程终止的信号
 		log.Info("server pid:", os.Getpid())
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, syscall.SIGTERM)
