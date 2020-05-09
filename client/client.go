@@ -675,6 +675,7 @@ func (client *Client) input() {
 	}
 	for _, call := range client.pending {
 		call.Error = err
+		log.Debug("客户端调用超时错误，客户端会关闭连接: ---------- ", err)
 		call.done()
 	}
 
