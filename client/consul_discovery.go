@@ -9,6 +9,8 @@ import (
 	"github.com/docker/libkv/store"
 	"github.com/docker/libkv/store/consul"
 	"github.com/smallnest/rpcx/log"
+	
+	logx "log"
 )
 
 func init() {
@@ -56,6 +58,15 @@ func NewConsulDiscoveryStore(basePath string, kv store.Store) ServiceDiscovery {
 	d.stopCh = make(chan struct{})
 
 	ps, err := kv.List(basePath)
+	logx.Println("basePath --------------", basePath)	
+	///**
+	// todo: 修复服务名模糊查找错误bug
+	logx.Println("svc nodes ------------- ", ps)
+	for i, p := range ps {
+		logx.Println("i, p ------------- ", i, p.Key, p.Value)
+	}	
+	//*/
+	
 	if err != nil {
 		log.Infof("cannot get services of from registry: %v, err: %v", basePath, err)
 		panic(err)
@@ -64,6 +75,10 @@ func NewConsulDiscoveryStore(basePath string, kv store.Store) ServiceDiscovery {
 	var pairs = make([]*KVPair, 0, len(ps))
 	prefix := d.basePath + "/"
 	for _, p := range ps {
+		pKeySp := strings.Split(p.Key, "/")
+		if len(pKeySp) > 0 && (pKeySp[0] + "/" + pKeySp[1] != basePath) {
+			continue	
+		}
 		k := strings.TrimPrefix(p.Key, prefix)
 		pair := &KVPair{Key: k, Value: string(p.Value)}
 		if d.filter != nil && !d.filter(pair) {
@@ -73,6 +88,8 @@ func NewConsulDiscoveryStore(basePath string, kv store.Store) ServiceDiscovery {
 	}
 	d.pairs = pairs
 	d.RetriesAfterWatchFailed = -1
+	// todo: 这里是监控服务节点的变化的逻辑， 原来修复了相似服务名的bug之后，再次访问会再出现是因为这里监控了节点的变化
+	// todo: 又把去掉的非法服务重新写进了 c.servers，才导致的
 	go d.watch()
 	return d
 }
@@ -137,6 +154,7 @@ func (d *ConsulDiscovery) RemoveWatcher(ch chan []*KVPair) {
 	d.chans = chans
 }
 func (d *ConsulDiscovery) watch() {
+	/** todo: 定时更新服务的节点信息， 初次读取服务之后会写入缓存，后续就靠这个来定时更新服务节点 */
 	for {
 		var err error
 		var c <-chan []*store.KVPair
@@ -183,6 +201,11 @@ func (d *ConsulDiscovery) watch() {
 				}
 				var pairs []*KVPair // latest servers
 				for _, p := range ps {
+					//logx.Println("watch nodes --------------", p.Key, p.Value)
+					pKeySp := strings.Split(p.Key, "/")
+					if len(pKeySp) > 0 && (pKeySp[0] + "/" + pKeySp[1] != d.basePath) {
+						continue
+					}
 					k := strings.TrimPrefix(p.Key, prefix)
 					pair := &KVPair{Key: k, Value: string(p.Value)}
 					if d.filter != nil && !d.filter(pair) {

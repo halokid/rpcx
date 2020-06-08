@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"log"
 	"sync"
 
 	"github.com/smallnest/rpcx/serverplugin"
@@ -210,6 +211,7 @@ func (c *OneClient) SendRaw(ctx context.Context, r *protocol.Message) (map[strin
 		}
 	}
 
+	log.Printf("xclient 1111 ------ %+v", xclient)
 	return xclient.SendRaw(ctx, r)
 }
 

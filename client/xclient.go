@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"io"
+	"log"
 	"net"
 	"net/url"
 	"os"
@@ -135,7 +136,9 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 	}
 	filterByStateAndGroup(client.option.Group, servers)
 
+	// todo: 定义servers， 修复相似服务名bug在这里
 	client.servers = servers
+	log.Println("client.servers ---------------", client.servers)
 	
 	// 检查第一个key属于什么typ
 	//serCk := servers[kCk]
@@ -268,6 +271,8 @@ func filterByStateAndGroup(group string, servers map[string]string) {
 
 // selects a client from candidates base on c.selectMode
 func (c *xClient) selectClient(ctx context.Context, servicePath, serviceMethod string, args interface{}) (string, RPCClient, error) {
+	log.Println("selectClient ---------------")
+	log.Println("servers ---------------", c.servers)
 	c.mu.Lock()
 	k := c.selector.Select(ctx, servicePath, serviceMethod, args)
 	c.mu.Unlock()
@@ -280,6 +285,7 @@ func (c *xClient) selectClient(ctx context.Context, servicePath, serviceMethod s
 
 func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 	// TODO: improve the lock
+	log.Println("getCachedClient -----------------")
 	var client RPCClient
 	var needCallPlugin bool
 	c.mu.Lock()
@@ -296,6 +302,7 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 	}
 
 	client = c.cachedClient[k]
+	log.Println("c.cachedClient ----- @@@@@@@@@@@@@@---- ", c.cachedClient)
 	if client != nil {
 		if !client.IsClosing() && !client.IsShutdown() {
 			return client, nil
@@ -319,6 +326,7 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 			if c.option.GenBreaker != nil {
 				breaker, _ = c.breakers.LoadOrStore(k, c.option.GenBreaker())
 			}
+			log.Println("getCache 11111111 --------------------------")
 			err := client.Connect(network, addr)
 			if err != nil {
 				if breaker != nil {
@@ -360,6 +368,7 @@ func (c *xClient) getCachedClientWithoutLock(k string) (RPCClient, error) {
 				option:  c.option,
 				Plugins: c.Plugins,
 			}
+			log.Println("getCache 22222 --------------------------")
 			err := client.Connect(network, addr)
 			if err != nil {
 				return nil, err
@@ -580,6 +589,7 @@ func uncoverError(err error) bool {
 	return true
 }
 func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]string, []byte, error) {
+	log.Println("c.servers -------------------", c.servers)
 	if c.isShutdown {
 		return nil, nil, ErrXClientShutdown
 	}
@@ -595,6 +605,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 	}
 
 	var err error
+	log.Println("xclient SendRow selectClient -------------")
 	k, client, err := c.selectClient(ctx, r.ServicePath, r.ServiceMethod, r.Payload)
 
 	if err != nil {
@@ -614,6 +625,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 		for retries >= 0 {
 			retries--
 			if client != nil {
+				log.Printf("client 22222------ %+v", client)
 				m, payload, err := client.SendRaw(ctx, r)
 				if err == nil {
 					return m, payload, nil
@@ -638,6 +650,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 		for retries >= 0 {
 			retries--
 			if client != nil {
+				log.Printf("client 3333 ----- %+v", client)
 				m, payload, err := client.SendRaw(ctx, r)
 				if err == nil {
 					return m, payload, nil
@@ -660,6 +673,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 		return nil, nil, err
 
 	default: //Failfast
+		log.Printf("client 44444------ %+v", client)
 		m, payload, err := client.SendRaw(ctx, r)
 
 		if err != nil {
