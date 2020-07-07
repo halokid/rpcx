@@ -1,5 +1,11 @@
 package serverplugin
-
+/**
+关于rpcx服务注册的设计说明：
+1. 写入服务的folder值在 register方法
+2. 写入实际运行节点的逻辑在start方法
+这样设计的目的是， 注册与实际节点分开， 因为实际节点信息只有在节点start的时候写入KV才有意义， 但是服务的话，可以先以
+folder的方法来注册， 所以这里是注册 与 实际运行 是分开两个概念的， 所以这样设计
+ */
 import (
 	"errors"
 	"fmt"
@@ -93,6 +99,7 @@ func (p *ConsulRegisterPlugin) Start() error {
 
 					//set this same metrics for all services at this server
 					for _, name := range p.Services {
+						// todo: 循环写入KV， 定义注册服务
 						nodePath := fmt.Sprintf("%s/%s/%s", p.BasePath, name, p.ServiceAddress)
 						kvPaire, err := p.kv.Get(nodePath)
 						if err != nil {
@@ -166,6 +173,7 @@ func (p *ConsulRegisterPlugin) HandleConnAccept(conn net.Conn) (net.Conn, bool) 
 // Register handles registering event.
 // this service is registered at BASE/serviceName/thisIpAddress node
 func (p *ConsulRegisterPlugin) Register(name string, rcvr interface{}, metadata string) (err error) {
+	/** 实现register plugin的register方法，创建KV的folder名称，设置和名称一样的值，并没有实际写入节点信息 */
 	if "" == strings.TrimSpace(name) {
 		err = errors.New("Register service `name` can't be empty")
 		return
