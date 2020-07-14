@@ -263,6 +263,7 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 			continue
 		}
 		// Third arg must be a pointer.
+		// todo: 定义接口方法的第三个参数必须是reply的struct， 否则就不算是svc的可调用方法
 		replyType := mtype.In(3)
 		if replyType.Kind() != reflect.Ptr {
 			if reportErr {
