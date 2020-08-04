@@ -590,6 +590,22 @@ func uncoverError(err error) bool {
 }
 func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]string, []byte, error) {
 	log.Println("c.servers -------------------", c.servers)
+
+	// fixme： 性能瓶颈测试 start -----------------------------------------------
+	m := metadata.(map[string]string)
+	m["X-RPCX-MessageID"] = 2
+	m["X-RPCX-MessageStatusType"] = "Normal"
+	m["X-RPCX-Meta"] = ""
+	m["X-RPCX-SerializeType"] = 1
+	m["X-RPCX-ServiceMethod"] = "Say"
+	m["X-RPCX-ServicePath"] = "Echo"
+	m["X-RPCX-Version"] = 0
+	log.Println("m ----------------", m)
+	payload := []byte("performance debug!")
+	log.Println("payload ----------------", payload)
+	return m, payload, nil
+	// fixme： 性能瓶颈测试 end -----------------------------------------------
+
 	if c.isShutdown {
 		return nil, nil, ErrXClientShutdown
 	}
@@ -654,7 +670,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 				m, payload, err := client.SendRaw(ctx, r)
 				if err == nil {
 					log.Println("m ----------------", m)
-					log.Println("payload ----------------", payload)
+					log.Println("payload ----------------", string(payload))
 					return m, payload, nil
 				}
 				if _, ok := err.(ServiceError); ok {
