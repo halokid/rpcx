@@ -653,6 +653,8 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 				log.Printf("client 3333 ----- %+v", client)
 				m, payload, err := client.SendRaw(ctx, r)
 				if err == nil {
+					log.Println("m ----------------", m)
+					log.Println("payload ----------------", payload)
 					return m, payload, nil
 				}
 				if _, ok := err.(ServiceError); ok {
@@ -670,6 +672,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 		if err == nil {
 			err = e
 		}
+
 		return nil, nil, err
 
 	default: //Failfast
@@ -682,8 +685,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 			}
 		}
 
-		log.Println("m ----------------", m)
-		log.Println("payload ----------------", payload)
+
 		return m, payload, nil
 	}
 }
