@@ -592,8 +592,9 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 	log.Println("c.servers -------------------", c.servers)
 
 	// fixme： 性能瓶颈测试 start -----------------------------------------------
-	metadata := ctx.Value(share.ReqMetaDataKey)
-	m := metadata.(map[string]string)
+	///**
+	var m map[string]string
+	m = make(map[string]string)
 	m["X-RPCX-MessageID"] = "2"
 	m["X-RPCX-MessageStatusType"] = "Normal"
 	m["X-RPCX-Meta"] = ""
@@ -605,6 +606,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 	payload := []byte("performance debug!")
 	log.Println("payload ----------------", payload)
 	return m, payload, nil
+	//*/
 	// fixme： 性能瓶颈测试 end -----------------------------------------------
 
 	if c.isShutdown {
