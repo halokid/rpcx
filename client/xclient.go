@@ -682,6 +682,8 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 			}
 		}
 
+		log.Println("m ----------------", m)
+		log.Println("payload ----------------", payload)
 		return m, payload, nil
 	}
 }
