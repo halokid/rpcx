@@ -592,7 +592,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 	log.Println("c.servers -------------------", c.servers)
 
 	// fixme： 性能瓶颈测试 start -----------------------------------------------
-	///**
+	/**
 	var m map[string]string
 	m = make(map[string]string)
 	m["X-RPCX-MessageID"] = "2"
@@ -604,9 +604,9 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 	m["X-RPCX-Version"] = "0"
 	log.Println("m ----------------", m)
 	payload := []byte("performance debug!")
-	log.Println("payload ----------------", payload)
+	log.Println("payload ----------------", string(payload))
 	return m, payload, nil
-	//*/
+	*/
 	// fixme： 性能瓶颈测试 end -----------------------------------------------
 
 	if c.isShutdown {
@@ -645,6 +645,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 			retries--
 			if client != nil {
 				log.Printf("client 22222------ %+v", client)
+				// fixme: 性能优化点
 				m, payload, err := client.SendRaw(ctx, r)
 				if err == nil {
 					return m, payload, nil
