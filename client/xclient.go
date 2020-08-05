@@ -327,6 +327,7 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 				breaker, _ = c.breakers.LoadOrStore(k, c.option.GenBreaker())
 			}
 			log.Println("getCache 11111111 --------------------------")
+			// todo: client连接到server， 并且把连接句柄写入conn, 这是一个长连接，cache会一直保留这个连接
 			err := client.Connect(network, addr)
 			if err != nil {
 				if breaker != nil {
@@ -674,7 +675,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 				m, payload, err := client.SendRaw(ctx, r)
 				if err == nil {
 					log.Println("m ----------------", m)
-					log.Println("payload ----------------", string(payload))
+					//log.Println("payload ----------------", string(payload))
 					return m, payload, nil
 				}
 				if _, ok := err.(ServiceError); ok {
