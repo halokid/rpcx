@@ -271,8 +271,8 @@ func filterByStateAndGroup(group string, servers map[string]string) {
 
 // selects a client from candidates base on c.selectMode
 func (c *xClient) selectClient(ctx context.Context, servicePath, serviceMethod string, args interface{}) (string, RPCClient, error) {
-	log.Println("selectClient ---------------")
-	log.Println("servers ---------------", c.servers)
+	//log.Println("selectClient ---------------")
+	//log.Println("servers ---------------", c.servers)
 	c.mu.Lock()
 	k := c.selector.Select(ctx, servicePath, serviceMethod, args)
 	c.mu.Unlock()
@@ -285,7 +285,7 @@ func (c *xClient) selectClient(ctx context.Context, servicePath, serviceMethod s
 
 func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 	// TODO: improve the lock
-	log.Println("getCachedClient -----------------")
+	//log.Println("getCachedClient -----------------")
 	var client RPCClient
 	var needCallPlugin bool
 	c.mu.Lock()
@@ -302,7 +302,7 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 	}
 
 	client = c.cachedClient[k]
-	log.Println("c.cachedClient ----- @@@@@@@@@@@@@@---- ", c.cachedClient)
+	//log.Println("c.cachedClient ----- @@@@@@@@@@@@@@---- ", c.cachedClient)
 	if client != nil {
 		if !client.IsClosing() && !client.IsShutdown() {
 			return client, nil
@@ -326,7 +326,7 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 			if c.option.GenBreaker != nil {
 				breaker, _ = c.breakers.LoadOrStore(k, c.option.GenBreaker())
 			}
-			log.Println("getCache 11111111 --------------------------")
+			//log.Println("getCache 11111111 --------------------------")
 			// todo: client连接到server， 并且把连接句柄写入conn, 这是一个长连接，cache会一直保留这个连接
 			err := client.Connect(network, addr)
 			if err != nil {
@@ -625,7 +625,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 	}
 
 	var err error
-	log.Println("xclient SendRow selectClient -------------")
+	//log.Println("xclient SendRow selectClient -------------")
 	k, client, err := c.selectClient(ctx, r.ServicePath, r.ServiceMethod, r.Payload)
 
 	if err != nil {
@@ -671,7 +671,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 		for retries >= 0 {
 			retries--
 			if client != nil {
-				log.Printf("client 3333 ----- %+v", client)
+				//log.Printf("client 3333 ----- %+v", client)
 				m, payload, err := client.SendRaw(ctx, r)
 				if err == nil {
 					log.Println("m ----------------", m)

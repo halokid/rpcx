@@ -40,7 +40,7 @@ func (c *Client) Connect(network, address string) error {
 		logx.Println("unix case ---------------")
 		conn, err = newDirectConn(c, network, address)
 	default:
-		logx.Println("default case ---------------")
+		//logx.Println("default case ---------------")
 		fn := ConnFactories[network]
 		if fn != nil {
 			conn, err = fn(c, network, address)
@@ -81,8 +81,8 @@ func (c *Client) Connect(network, address string) error {
 }
 
 func newDirectConn(c *Client, network, address string) (net.Conn, error) {
-	logx.Println("network ----------------", network)
-	logx.Println("address ----------------", address)
+	//logx.Println("network ----------------", network)
+	//logx.Println("address ----------------", address)
 	var conn net.Conn
 	var tlsConn *tls.Conn
 	var err error

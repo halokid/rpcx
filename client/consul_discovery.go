@@ -9,8 +9,6 @@ import (
 	"github.com/docker/libkv/store"
 	"github.com/docker/libkv/store/consul"
 	"github.com/smallnest/rpcx/log"
-	
-	logx "log"
 )
 
 func init() {
@@ -58,17 +56,18 @@ func NewConsulDiscoveryStore(basePath string, kv store.Store) ServiceDiscovery {
 	d.stopCh = make(chan struct{})
 
 	ps, err := kv.List(basePath)
-	logx.Println("basePath --------------", basePath)	
+	//logx.Println("basePath --------------", basePath)
 	///**
 	// todo: 修复服务名模糊查找错误bug
-	logx.Println("svc nodes ------------- ", ps)
-	for i, p := range ps {
-		logx.Println("i, p ------------- ", i, p.Key, p.Value)
-	}	
+	//logx.Println("svc nodes ------------- ", ps)
+	//for i, p := range ps {
+		//logx.Println("i, p ------------- ", i, p.Key, p.Value)
+	//}
 	//*/
 	
 	if err != nil {
-		log.Infof("cannot get services of from registry: %v, err: %v", basePath, err)
+		//log.Infof("cannot get services of from registry: %v, err: %v", basePath, err)
+		log.Infof("[ERROR]------从注册中心找不到服务cannot get services of from registry: %v, err: %v", basePath, err)
 		panic(err)
 	}
 

@@ -356,7 +356,7 @@ func (s *Server) serveConn(conn net.Conn) {
 			} else if strings.Contains(err.Error(), "use of closed network connection") {
 				log.Infof("rpcx: connection %s is closed", conn.RemoteAddr().String())
 			} else {
-				log.Warnf("rpcx: failed to read request: %v", err)
+				log.Warnf("服务端强制close连接-rpcx: failed to read request: %v", err)
 			}
 			return
 		}
