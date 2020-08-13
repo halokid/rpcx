@@ -12,9 +12,10 @@ import (
 	"strconv"
 	"sync"
 	"time"
+	logx "log"
 
-	opentracing "github.com/opentracing/opentracing-go"
-	circuit "github.com/rubyist/circuitbreaker"
+	"github.com/opentracing/opentracing-go"
+	"github.com/rubyist/circuitbreaker"
 	"github.com/smallnest/rpcx/log"
 	"github.com/smallnest/rpcx/protocol"
 	"github.com/smallnest/rpcx/share"
@@ -364,7 +365,10 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
 	done := make(chan *Call, 10)
 	call.Done = done
 
+	// todo: 将每一次请求的属性值转为uint64类型的序列号
 	seq := r.Seq()
+	logx.Printf("seq ----------------- %+v", seq)
+
 	client.mutex.Lock()
 	if client.pending == nil {
 		client.pending = make(map[uint64]*Call)
@@ -372,7 +376,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
 	client.pending[seq] = call
 	client.mutex.Unlock()
 
-	data := r.Encode()
+	data := r.Encode()				// 请求的所有数据转化为[]byte
 	_, err := client.Conn.Write(data)
 	if err != nil {
 		client.mutex.Lock()

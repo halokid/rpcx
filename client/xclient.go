@@ -626,6 +626,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 
 	var err error
 	//log.Println("xclient SendRow selectClient -------------")
+	// todo: 根据XClient的数据来生成Client，最后的SendRaw逻辑是由Client调用的
 	k, client, err := c.selectClient(ctx, r.ServicePath, r.ServiceMethod, r.Payload)
 
 	if err != nil {
@@ -671,7 +672,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 		for retries >= 0 {
 			retries--
 			if client != nil {
-				//log.Printf("client 3333 ----- %+v", client)
+				log.Printf("client Failover ----- %+v", client)
 				m, payload, err := client.SendRaw(ctx, r)
 				if err == nil {
 					log.Println("m ----------------", m)

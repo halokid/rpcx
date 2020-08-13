@@ -4,6 +4,7 @@ package client
 type FailMode int
 
 const (
+	// todo: iota为优雅的定义golang的常量， Failover为1， 其他常量依次递增， 比如Failfast为2
 	//Failover selects another server automaticaly
 	Failover FailMode = iota
 	//Failfast returns error immediately

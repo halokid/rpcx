@@ -203,6 +203,7 @@ func (h *Header) SetSerializeType(st SerializeType) {
 
 // Seq returns sequence number of messages.
 func (h Header) Seq() uint64 {
+	// 大端序模式的字节转为uint64
 	return binary.BigEndian.Uint64(h[4:])
 }
 

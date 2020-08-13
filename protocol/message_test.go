@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"bytes"
+	"encoding/binary"
 	"fmt"
 	"testing"
 )
@@ -61,3 +62,25 @@ func TestMessage(t *testing.T) {
 		t.Errorf("got wrong payload: %v", string(res.Payload))
 	}
 }
+
+func TestHeader_SetSerializeType(t *testing.T) {
+	type Sl [12]byte
+	var sl Sl
+	sl[3] = (sl[3] &^ 0xF0) | (byte(3) << 4)
+	t.Logf("sl[3]------------- %+v", sl[3])
+	t.Logf("sl------------- %+v", sl)
+
+	var slx Sl
+	slx[0] = byte(1)
+	slx[1] = byte(2)
+	slx[2] = byte(3)
+	slx[3] = byte(4)
+	slx[4] = byte(5)
+	t.Logf("slx[4:] ---------------- %+v", slx[4:])
+	bs := binary.BigEndian.Uint64(slx[4:])
+	t.Logf("bs ------------------ %+v", bs)
+	t.Logf("slx ------------------ %+v", slx)
+}
+
+
+
