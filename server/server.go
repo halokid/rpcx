@@ -352,9 +352,9 @@ func (s *Server) serveConn(conn net.Conn) {
 		req, err := s.readRequest(ctx, r)
 		if err != nil {
 			if err == io.EOF {
-				log.Infof("client has closed this connection: %s", conn.RemoteAddr().String())
+				log.Infof("client has closed this conn: %s", conn.RemoteAddr().String())
 			} else if strings.Contains(err.Error(), "use of closed network connection") {
-				log.Infof("rpcx: connection %s is closed", conn.RemoteAddr().String())
+				log.Infof("rpcx: 使用了一个已经关闭的连接: %s 是关闭的", conn.RemoteAddr().String())
 			} else {
 				log.Warnf("服务端强制close连接-rpcx: failed to read request: %v", err)
 			}
