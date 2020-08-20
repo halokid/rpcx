@@ -94,6 +94,7 @@ const (
 
 // Message is the generic type of Request and Response.
 type Message struct {
+	// Message继承了Header, 可以用Header的方法 
 	*Header
 	ServicePath   string
 	ServiceMethod string
