@@ -435,8 +435,8 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
       payload = call.Reply.([]byte)
     }
 
-  default:
-  log.Debugf("done 5 ----------------- %+v", done)
+  //default:
+  //log.Debugf("done 5 ----------------- %+v", done)
   }
 
   return m, payload, err
