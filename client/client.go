@@ -365,7 +365,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
   // fixme: done的channel长度只有10， 可能这里是一个性能瓶颈
   done := make(chan *Call, 10)
   log.Debugf("done 1 ----------------- %+v", done)
-  call.Done = done
+  call.Done = done          // todo： 某个gor改变call.Done 从而改变done, 可能是Go函数?
   log.Debugf("call.Done ----------------- %+v", call.Done)
   log.Debugf("done 2 ----------------- %+v", done)
 
