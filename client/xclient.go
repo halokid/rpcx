@@ -328,6 +328,7 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 			}
 			//log.Println("getCache 11111111 --------------------------")
 			// todo: client连接到server， 并且把连接句柄写入conn, 这是一个长连接，cache会一直保留这个连接
+			// todo:  Connect函数会触发一个input的gor, go c.input() 这一句， 这个input就是更改 client.pending[seq]， 也就是网络请求连接状态的逻辑，SendRaw 和 call 都是靠这个来改变网络请求的状态
 			err := client.Connect(network, addr)
 			if err != nil {
 				if breaker != nil {

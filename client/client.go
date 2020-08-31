@@ -171,7 +171,7 @@ type Call struct {
 
 func (call *Call) done() {
   select {
-  case call.Done <- call:
+  case call.Done <- call:       // todo: 是这里重写了SendRaw的 call.Done
     // ok
   default:
     //log.Debug("rpc: discarding Call reply due to insufficient Done chan capacity")
@@ -366,7 +366,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
   done := make(chan *Call, 10)
   log.Debugf("done 1 ----------------- %+v", done)
   call.Done = done          // todo： 某个gor改变call.Done 从而改变done, 可能是Go函数?
-  log.Debugf("call.Done ----------------- %+v", call.Done)
+  log.Debugf("call.Done 1 ----------------- %+v", call.Done)
   log.Debugf("done 2 ----------------- %+v", done)
 
   // todo: 转化XMessageIDVal的值
@@ -377,7 +377,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
   if client.pending == nil {
     client.pending = make(map[uint64]*Call)
   }
-  client.pending[seq] = call
+  client.pending[seq] = call        // todo: 通过这里传入call， 有协程在监听pending，然后改变call的状态
   log.Debugf("done 3 ----------------- %+v", done)
   client.mutex.Unlock()
 
@@ -385,6 +385,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
   _, err := client.Conn.Write(data)
   log.Debug("client.Conn.Write err -----------------", err)
   log.Debugf("done 4 ----------------- %+v", done)
+  log.Debugf("call.Done 2 ----------------- %+v", call.Done)
 
   if err != nil {
     client.mutex.Lock()
@@ -426,8 +427,8 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
     }
     return nil, nil, ctx.Err()
 
-  case call := <-done:
-    logx.Println("---@@@------- <-done --------@@@---")
+  case call := <-done:        // todo: 写入done channel的就是这个call请求本身
+    log.Debugf("---@@@------- <-done --------@@@--- %+v", done)
     log.Debugf("select call := <-done  %+v ----------------", call)
     err = call.Error
     m = call.Metadata
@@ -484,6 +485,7 @@ func urlencode(data map[string]string) string {
   s := buf.String()
   return s[0 : len(s)-1]
 }
+
 func (client *Client) send(ctx context.Context, call *Call) {
 
   // Register this call.
@@ -657,7 +659,7 @@ func (client *Client) input() {
 
       }
 
-      call.done()
+      call.done()       // todo: 更改call状态的逻辑
     }
   }
   // Terminate pending calls.
