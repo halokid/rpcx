@@ -5,7 +5,6 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/smallnest/rpcx/log"
 	"io"
 
 	"github.com/smallnest/rpcx/util"
@@ -406,6 +405,7 @@ func Read(r io.Reader) (*Message, error) {
 func (m *Message) Decode(r io.Reader) error {
 	// validate rest length for each step?
 
+	//log.Debugf("res.data 2 ---------------------  %+v", m)
 	// parse header
 	_, err := io.ReadFull(r, m.Header[:1])
 	if err != nil {
@@ -434,16 +434,22 @@ func (m *Message) Decode(r io.Reader) error {
 		return ErrMessageTooLong
 	}
 
+
+	//log.Debugf("res.data 3 ---------------------  %+v", m)
+
 	totalL := int(l)
 	if cap(m.data) >= totalL { //reuse data
 		m.data = m.data[:totalL]
 	} else {
 		m.data = make([]byte, totalL)
 	}
+
+	//log.Debugf("res.data 4 ---------------------  %+v", m)
+
 	data := m.data
-	log.Debugf("m.data 1 ---------------------- %+v", m.data)
+	//log.Debugf("m.data 1 ---------------------- %+v", m.data)
 	_, err = io.ReadFull(r, data)
-	log.Debugf("m.data 2 ---------------------- %+v", m.data)
+	//log.Debugf("m.data 2 ---------------------- %+v", m.data)
 	if err != nil {
 		return err
 	}

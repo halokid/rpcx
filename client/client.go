@@ -364,28 +364,28 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
 
   // fixme: done的channel长度只有10， 可能这里是一个性能瓶颈
   done := make(chan *Call, 10)
-  log.Debugf("done 1 ----------------- %+v", done)
+  //log.Debugf("done 1 ----------------- %+v", done)
   call.Done = done          // todo： 某个gor改变call.Done 从而改变done, 可能是Go函数?
-  log.Debugf("call.Done 1 ----------------- %+v", call.Done)
-  log.Debugf("done 2 ----------------- %+v", done)
+  //log.Debugf("call.Done 1 ----------------- %+v", call.Done)
+  //log.Debugf("done 2 ----------------- %+v", done)
 
   // todo: 转化XMessageIDVal的值
   seq := r.Seq()
-  logx.Printf("seq XMessageID ----------------- %+v", seq)
+  //logx.Printf("seq XMessageID ----------------- %+v", seq)
 
   client.mutex.Lock()
   if client.pending == nil {
     client.pending = make(map[uint64]*Call)
   }
   client.pending[seq] = call        // todo: 通过这里传入call， 有协程在监听pending，然后改变call的状态
-  log.Debugf("done 3 ----------------- %+v", done)
+  //log.Debugf("done 3 ----------------- %+v", done)
   client.mutex.Unlock()
 
   data := r.Encode() // 请求的所有数据转化为[]byte
   _, err := client.Conn.Write(data)
-  log.Debug("client.Conn.Write err -----------------", err)
-  log.Debugf("done 4 ----------------- %+v", done)
-  log.Debugf("call.Done 2 ----------------- %+v", call.Done)
+  //log.Debug("client.Conn.Write err -----------------", err)
+  //log.Debugf("done 4 ----------------- %+v", done)
+  //log.Debugf("call.Done 2 ----------------- %+v", call.Done)
 
   if err != nil {
     client.mutex.Lock()
@@ -428,8 +428,8 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
     return nil, nil, ctx.Err()
 
   case call := <-done:        // todo: 写入done channel的就是这个call请求本身
-    log.Debugf("---@@@------- <-done --------@@@--- %+v", done)
-    log.Debugf("select call := <-done  %+v ----------------", call)
+    //log.Debugf("---@@@------- <-done --------@@@--- %+v", done)
+    //log.Debugf("select call := <-done  %+v ----------------", call)
     err = call.Error
     m = call.Metadata
     if call.Reply != nil {
@@ -444,7 +444,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
 }
 
 func convertRes2Raw(res *protocol.Message) (map[string]string, []byte, error) {
-  log.Debugf("res.Payload 1 ---------------- %+v", res.Payload)
+  //log.Debugf("res.Payload 1 ---------------- %+v", res.Payload)
   m := make(map[string]string)
   m[XVersion] = strconv.Itoa(int(res.Version()))
   if res.IsHeartbeat() {
@@ -463,7 +463,7 @@ func convertRes2Raw(res *protocol.Message) (map[string]string, []byte, error) {
     m["Content-Encoding"] = "gzip"
   }
 
-  log.Debugf("res.Payload 2 ---------------- %+v", res.Payload)
+  //log.Debugf("res.Payload 2 ---------------- %+v", res.Payload)
 
   m[XMeta] = urlencode(res.Metadata)
   m[XSerializeType] = strconv.Itoa(int(res.SerializeType()))
@@ -471,7 +471,7 @@ func convertRes2Raw(res *protocol.Message) (map[string]string, []byte, error) {
   m[XServicePath] = res.ServicePath
   m[XServiceMethod] = res.ServiceMethod
 
-  log.Debugf("res.Payload 3 ---------------- %+v", res.Payload)
+  //log.Debugf("res.Payload 3 ---------------- %+v", res.Payload)
 
   return m, res.Payload, nil
 }
@@ -605,11 +605,12 @@ func (client *Client) input() {
     }
 
 
-    log.Debugf("res.Payload 1 --------------------- %+v", res.Payload)
-    log.Debugf("len: client.r 2 ---------------------  %+v", client.r)
-    // todo: 是input改变了 client.r 的值???
+    //log.Debugf("res.Payload 1 --------------------- %+v", res.Payload)
+    //log.Debugf("len: client.r 2 ---------------------  %+v", client.r)
+    //log.Debugf("res.data 1 ---------------------  %+v", res)
+    // todo: 是input改变了 client.r 的值???,  Decode函数一直在读取 client.r的数据
     err = res.Decode(client.r)
-    log.Debugf("res.Payload 2 --------------------- %+v", res.Payload)
+    //log.Debugf("res.Payload 2 --------------------- %+v", res.Payload)
 
     if err != nil {
       break
@@ -628,7 +629,7 @@ func (client *Client) input() {
       client.mutex.Unlock()
     }
 
-    log.Debugf("call.Reply 1 --------------------- %+v", call.Reply)
+    //log.Debugf("call.Reply 1 --------------------- %+v", call.Reply)
 
     switch {    // todo: 协程重复执行 input()， 这个switch逻辑一会一直监听执行
     case call == nil:
@@ -652,10 +653,10 @@ func (client *Client) input() {
       call.done()
     default:
       if call.Raw {
-        log.Debugf("res.Payload 3 --------------------- %+v", res.Payload)
-        log.Debugf("call.Reply 2 --------------------- %+v", call.Reply)
+        //log.Debugf("res.Payload 3 --------------------- %+v", res.Payload)
+        //log.Debugf("call.Reply 2 --------------------- %+v", call.Reply)
         call.Metadata, call.Reply, _ = convertRes2Raw(res)
-        log.Debugf("call.Reply 3 --------------------- %+v", string(call.Reply.([]uint8)))
+        //log.Debugf("call.Reply 3 --------------------- %+v", string(call.Reply.([]uint8)))
       } else {
         data := res.Payload
         if len(data) > 0 {
@@ -681,6 +682,7 @@ func (client *Client) input() {
   // Terminate pending calls.
 
   if client.ServerMessageChan != nil {
+    //log.Debugf("---@@@@@------client.ServerMessageChan != nil ---@@@@@-----")
     req := protocol.NewMessage()
     req.SetMessageType(protocol.Request)
     req.SetMessageStatusType(protocol.Error)

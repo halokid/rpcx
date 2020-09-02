@@ -65,8 +65,9 @@ func (c *Client) Connect(network, address string) error {
 		}
 
 		c.Conn = conn
+		// todo: 这里是读取服务端连接数据的关键， c.r = bufio.NewReaderSize(conn, ReaderBuffsize)这样定义是表示从 conn 的返回之后获取数据, 这样的话在 server.go 的 serverConn 函数里面的 conn.Write(data) 就是直接把返回的数据写入这个 conn， 所以成功写入返回数据之后， c.r 的数据就会改变了，然后	input函数一直在一个gor运行， 就会不断读取这个 c.r， 读取到之后， 就会赋值给 call.Reply， 返回给客户端了
 		c.r = bufio.NewReaderSize(conn, ReaderBuffsize)
-		log.Debugf("len: client.r 1 ---------------------  %+v", c.r)
+		//log.Debugf("len: client.r 1 ---------------------  %+v", c.r)
 		//c.w = bufio.NewWriterSize(conn, WriterBuffsize)
 
 		// start reading and writing since connected
