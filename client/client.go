@@ -444,6 +444,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
 }
 
 func convertRes2Raw(res *protocol.Message) (map[string]string, []byte, error) {
+  log.Debugf("res.Payload 1 ---------------- %+v", res.Payload)
   m := make(map[string]string)
   m[XVersion] = strconv.Itoa(int(res.Version()))
   if res.IsHeartbeat() {
@@ -462,11 +463,15 @@ func convertRes2Raw(res *protocol.Message) (map[string]string, []byte, error) {
     m["Content-Encoding"] = "gzip"
   }
 
+  log.Debugf("res.Payload 2 ---------------- %+v", res.Payload)
+
   m[XMeta] = urlencode(res.Metadata)
   m[XSerializeType] = strconv.Itoa(int(res.SerializeType()))
   m[XMessageID] = strconv.FormatUint(res.Seq(), 10)
   m[XServicePath] = res.ServicePath
   m[XServiceMethod] = res.ServiceMethod
+
+  log.Debugf("res.Payload 3 ---------------- %+v", res.Payload)
 
   return m, res.Payload, nil
 }
@@ -599,7 +604,13 @@ func (client *Client) input() {
       client.Conn.SetReadDeadline(time.Now().Add(client.option.ReadTimeout))
     }
 
+
+    log.Debugf("res.Payload 1 --------------------- %+v", res.Payload)
+    log.Debugf("len: client.r 2 ---------------------  %+v", client.r)
+    // todo: 是input改变了 client.r 的值???
     err = res.Decode(client.r)
+    log.Debugf("res.Payload 2 --------------------- %+v", res.Payload)
+
     if err != nil {
       break
     }
@@ -612,12 +623,14 @@ func (client *Client) input() {
     isServerMessage := (res.MessageType() == protocol.Request && !res.IsHeartbeat() && res.IsOneway())
     if !isServerMessage {
       client.mutex.Lock()
-      call = client.pending[seq]
+      call = client.pending[seq]      // todo: 取得在SendRaw的时候写入的pending call
       delete(client.pending, seq)
       client.mutex.Unlock()
     }
 
-    switch {
+    log.Debugf("call.Reply 1 --------------------- %+v", call.Reply)
+
+    switch {    // todo: 协程重复执行 input()， 这个switch逻辑一会一直监听执行
     case call == nil:
       if isServerMessage {
         if client.ServerMessageChan != nil {
@@ -639,7 +652,10 @@ func (client *Client) input() {
       call.done()
     default:
       if call.Raw {
+        log.Debugf("res.Payload 3 --------------------- %+v", res.Payload)
+        log.Debugf("call.Reply 2 --------------------- %+v", call.Reply)
         call.Metadata, call.Reply, _ = convertRes2Raw(res)
+        log.Debugf("call.Reply 3 --------------------- %+v", string(call.Reply.([]uint8)))
       } else {
         data := res.Payload
         if len(data) > 0 {

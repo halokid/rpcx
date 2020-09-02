@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/smallnest/rpcx/log"
 	"io"
 
 	"github.com/smallnest/rpcx/util"
@@ -145,15 +146,17 @@ func (h *Header) SetMessageType(mt MessageType) {
 
 // IsHeartbeat returns whether the message is heartbeat message.
 func (h Header) IsHeartbeat() bool {
-	return h[2]&0x40 == 0x40
+	// todo: 如果 h[2]原来都是默认的值， 8位全部都是0， 则 &0x40之后， 得值0x40
+	return h[2] & 0x40 == 0x40
 }
 
 // SetHeartbeat sets the heartbeat flag.
 func (h *Header) SetHeartbeat(hb bool) {
 	if hb {
+		// todo: 如果 h[2]的8位, 值为0x40, 换成二进制是0100 0000
 		h[2] = h[2] | 0x40
 	} else {
-		h[2] = h[2] &^ 0x40
+		h[2] = h[2] &^ 0x40					// 即是   h[2] & (^0x40), 结果是重置 h[2] 的8位为0
 	}
 }
 
@@ -438,7 +441,9 @@ func (m *Message) Decode(r io.Reader) error {
 		m.data = make([]byte, totalL)
 	}
 	data := m.data
+	log.Debugf("m.data 1 ---------------------- %+v", m.data)
 	_, err = io.ReadFull(r, data)
+	log.Debugf("m.data 2 ---------------------- %+v", m.data)
 	if err != nil {
 		return err
 	}

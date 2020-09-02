@@ -66,6 +66,7 @@ func (c *Client) Connect(network, address string) error {
 
 		c.Conn = conn
 		c.r = bufio.NewReaderSize(conn, ReaderBuffsize)
+		log.Debugf("len: client.r 1 ---------------------  %+v", c.r)
 		//c.w = bufio.NewWriterSize(conn, WriterBuffsize)
 
 		// start reading and writing since connected
