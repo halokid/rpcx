@@ -30,7 +30,7 @@ var (
 	// ErrXClientShutdown xclient is shutdown.
 	ErrXClientShutdown = errors.New("xClient is shut down")
 	// ErrXClientNoServer selector can't found one server.
-	ErrXClientNoServer = errors.New("can not found any server")
+	ErrXClientNoServer = errors.New("服务不可用或没有相应的服务名----can not found any server")
 	// ErrServerUnavailable selected server is unavailable.
 	ErrServerUnavailable = errors.New("selected server is unavilable")
 )
@@ -71,6 +71,7 @@ type ServiceDiscoveryFilter func(kvp *KVPair) bool
 
 // ServiceDiscovery defines ServiceDiscovery of zookeeper, etcd and consul
 type ServiceDiscovery interface {
+	// todo: 每种服务注册的方式都要继续这个interface的方法
 	GetServices() []*KVPair
 	WatchService() chan []*KVPair
 	RemoveWatcher(ch chan []*KVPair)

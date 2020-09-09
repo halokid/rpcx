@@ -68,7 +68,9 @@ func NewConsulDiscoveryStore(basePath string, kv store.Store) ServiceDiscovery {
 	if err != nil {
 		//log.Infof("cannot get services of from registry: %v, err: %v", basePath, err)
 		log.Infof("[ERROR]------从注册中心找不到服务cannot get services of from registry: %v, err: %v", basePath, err)
-		panic(err)
+		//panic(err)
+		// todo: 找不到服务不需要进程崩溃
+		return d
 	}
 
 	var pairs = make([]*KVPair, 0, len(ps))
