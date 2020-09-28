@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"net/http"
 	"net/url"
 	"os"
 	"reflect"
@@ -20,6 +21,9 @@ import (
 	"github.com/smallnest/rpcx/serverplugin"
 	"github.com/smallnest/rpcx/share"
 	//. "github.com/halokid/ColorfulRabbit"
+
+	"github.com/halokid/ColorfulRabbit"
+	"github.com/mozillazg/request"
 )
 
 const (
@@ -46,6 +50,7 @@ type XClient interface {
 
 	Go(ctx context.Context, serviceMethod string, args interface{}, reply interface{}, done chan *Call) (*Call, error)
 	Call(ctx context.Context, serviceMethod string, args interface{}, reply interface{}) error
+  CallNotGo(pairs []*KVPair) string
 	Broadcast(ctx context.Context, serviceMethod string, args interface{}, reply interface{}) error
 	Fork(ctx context.Context, serviceMethod string, args interface{}, reply interface{}) error
 	SendRaw(ctx context.Context, r *protocol.Message) (map[string]string, []byte, error)
@@ -574,6 +579,41 @@ func (c *xClient) Call(ctx context.Context, serviceMethod string, args interface
 
 		return err
 	}
+}
+
+
+func (c *xClient) CallNotGo(pairs []*KVPair) string {
+	// 调用非go服务
+	if len(pairs) == 0 {
+		return "Call --- 服务节点数据为空"
+	}
+	kv := pairs[0]				// fixme： 先选择第一个节点，还需要优化算法
+	if strings.Contains(kv.Value, "typ=py") {
+		addrSpl := strings.Split(kv.Key, "@")
+		return callPySvc(addrSpl[1], "{}")
+	}
+
+	return ""
+}
+
+func callPySvc(svcAddr string, params string) string {
+	// 调用py服务端, jsonrpc协议
+	c := &http.Client{}
+	c.Timeout = time.Duration(5 * time.Second)
+	req := request.NewRequest(c)
+	req.Json = map[string]interface{} {
+		"jsonrpc": "2.0",
+		"method": "QywxToken.GetSyncTk",
+		"params": make(map[string]interface{}),				// 空map， 表示为{}
+		"id": "1",
+	}
+	rsp, err := req.Post("http://" + svcAddr + "/api")
+	ColorfulRabbit.CheckError(err, "调用服务失败", svcAddr)
+	//content, _ := rsp.Content()
+	js, _ := rsp.Json()
+	rspCt := string(js.Get("result").MustString())
+	log.Println("reqQw rsp --------------", rsp.StatusCode, rspCt)
+	return rspCt
 }
 
 func uncoverError(err error) bool {
