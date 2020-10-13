@@ -709,7 +709,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 			err = e
 		}
 		return nil, nil, err
-	case Failover:
+	case Failover:			// 这个是gateway默认采用的失败方式
 		retries := c.option.Retries
 		for retries >= 0 {
 			retries--
