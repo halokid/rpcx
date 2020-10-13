@@ -714,10 +714,10 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 		for retries >= 0 {
 			retries--
 			if client != nil {
-				log.Printf("client Failover ----- %+v", client)
+				//log.Printf("client Failover ----- %+v", client)
 				m, payload, err := client.SendRaw(ctx, r)
 				if err == nil {
-					log.Println("m ----------------", m)
+					log.Println("SendRaw ----------------", m)
 					//log.Println("payload ----------------", string(payload))
 					return m, payload, nil
 				}
