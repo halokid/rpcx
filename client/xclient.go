@@ -109,9 +109,8 @@ type xClient struct {
 
 	serverMessageChan chan<- *protocol.Message
 	
-	// 非go的标识
-	isGo bool
-	noGoServers map[string]string
+	isGo bool			// 非go服务端的标识
+	noGoServers map[string]string			// 非go服务端的地址
 }
 
 // NewXClient creates a XClient that supports service discovery and service governance.
@@ -155,8 +154,10 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 	//}
 	
 	//log.Println("找到的servers:", servers)
+	isNotGoSvc := []string{"typ=py", "typ=rust"}
 	for _, v := range servers {
-		if strings.Index(v, "typ=py") != -1 {
+		//if strings.Index(v, "typ=py") != -1 {
+		if ColorfulRabbit.InSlice(v, isNotGoSvc) {	
 			// 为非go语言
 			client.isGo = false 
 			client.noGoServers = servers
@@ -670,6 +671,8 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 	//log.Println("xclient SendRow selectClient -------------")
 	// todo: 根据XClient的数据来生成Client，最后的SendRaw逻辑是由Client调用的
 	k, client, err := c.selectClient(ctx, r.ServicePath, r.ServiceMethod, r.Payload)
+	log.Printf("c.selectClient err ----------", err.(ServiceError), "---", err.Error())
+	log.Printf("DEBUG halokid 2 ------ ")
 
 	if err != nil {
 		if c.failMode == Failfast {
@@ -677,6 +680,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 		}
 
 		if _, ok := err.(ServiceError); ok {
+			log.Printf("DEBUG halokid 3 ------ ")
 			return nil, nil, err
 		}
 	}
@@ -709,18 +713,25 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 			err = e
 		}
 		return nil, nil, err
-	case Failover:			// 这个是gateway默认采用的失败方式
+	case Failover:			// todo: 这个是gateway默认采用的失败方式
+		log.Printf("DEBUG halokid 4 ------ ")
 		retries := c.option.Retries
+		log.Println("Failover模式 retries --------- ", retries)
 		for retries >= 0 {
 			retries--
+			log.Println("Failover模式 client --------- ", client)
 			if client != nil {
 				//log.Printf("client Failover ----- %+v", client)
 				m, payload, err := client.SendRaw(ctx, r)
+				log.Println("Failover模式 err --------- ", err.Error())
 				if err == nil {
 					log.Println("SendRaw ----------------", m)
 					//log.Println("payload ----------------", string(payload))
 					return m, payload, nil
+				} else {
+					log.Println("[ERROR] ----------------", err.Error())
 				}
+				
 				if _, ok := err.(ServiceError); ok {
 					return nil, nil, err
 				}
@@ -737,6 +748,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 			err = e
 		}
 
+		log.Printf("DEBUG halokid 5 ------ ")
 		return nil, nil, err
 
 	default: //Failfast
@@ -749,7 +761,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 			}
 		}
 
-
+		log.Printf("DEBUG halokid 1 ------ ")
 		return m, payload, nil
 	}
 }
