@@ -46,7 +46,7 @@ type ConsulRegisterPlugin struct {
 	kv      store.Store
 
 	dying chan struct{}
-	done  chan struct{}
+	done  chan struct{}				// todo: 空结构体省内存，只是记录状态
 }
 
 // Start starts to connect consul cluster
