@@ -238,7 +238,7 @@ func (client *Client) Go(ctx context.Context, servicePath, serviceMethod string,
     }
   }
   call.Done = done
-  client.send(ctx, call)
+  client.send(ctx, call)        // todo: 发送客户端请求给服务端
   return call
 }
 
@@ -494,7 +494,7 @@ func urlencode(data map[string]string) string {
 func (client *Client) send(ctx context.Context, call *Call) {
 
   // Register this call.
-  client.mutex.Lock()
+  client.mutex.Lock()       // 锁住client， mutex作为一个锁句柄，放在client里面作为属性，方便调用
   if client.shutdown || client.closing {
     call.Error = ErrShutdown
     client.mutex.Unlock()
@@ -516,7 +516,7 @@ func (client *Client) send(ctx context.Context, call *Call) {
 
   seq := client.seq
   client.seq++
-  client.pending[seq] = call
+  client.pending[seq] = call        // todo: client正在处理的是当前的call, 把call加入client的pending列表
   client.mutex.Unlock()
 
   if cseq, ok := ctx.Value(seqKey{}).(*uint64); ok {
@@ -551,6 +551,7 @@ func (client *Client) send(ctx context.Context, call *Call) {
       return
     }
     if len(data) > 1024 && client.option.CompressType != protocol.None {
+      // 加入byte的长度大于1024才需要压缩
       req.SetCompressType(client.option.CompressType)
     }
 

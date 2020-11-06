@@ -324,7 +324,7 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 		if network == "inprocess" {
 			client = InprocessClient
 		} else {
-			client = &Client{
+			client = &Client{			// todo: client本来是一个 RPCClient类型, xClient是从这里开始转变为client struct的，所以可以调用 client.conn
 				option:  c.option,
 				Plugins: c.Plugins,
 			}
@@ -771,6 +771,7 @@ func (c *xClient) wrapCall(ctx context.Context, client RPCClient, serviceMethod 
 	}
 
 	ctx = share.NewContext(ctx)
+	// DoPreCall会处理一些opentracking的逻辑
 	c.Plugins.DoPreCall(ctx, c.servicePath, serviceMethod, args)
 	err := client.Call(ctx, c.servicePath, serviceMethod, args, reply)
 	c.Plugins.DoPostCall(ctx, c.servicePath, serviceMethod, args, reply, err)
