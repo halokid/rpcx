@@ -318,7 +318,7 @@ func (client *Client) call(ctx context.Context, servicePath, serviceMethod strin
     }
 
     return ctx.Err()
-  case call := <-Done:
+  case call := <-Done:      // 当前的call已经完成
     err = call.Error
     meta := ctx.Value(share.ResMetaDataKey)
     if meta != nil && len(call.ResMetadata) > 0 {
@@ -563,7 +563,7 @@ func (client *Client) send(ctx context.Context, call *Call) {
   }
   data := req.Encode()
 
-  _, err := client.Conn.Write(data)
+  _, err := client.Conn.Write(data)   // todo: 向连接服务端的conn写入数据
   if err != nil {
     client.mutex.Lock()
     call = client.pending[seq]
