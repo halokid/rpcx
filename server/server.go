@@ -297,7 +297,8 @@ func (s *Server) serveByHTTP(ln net.Listener, rpcPath string) {
 }
 
 func (s *Server) serveConn(conn net.Conn) {
-	defer func() {
+	
+	defer func() {		// todo: 在defer函数捕获recover，获取服务奔溃的信息
 		if err := recover(); err != nil {
 			const size = 64 << 10
 			buf := make([]byte, size)
@@ -334,6 +335,7 @@ func (s *Server) serveConn(conn net.Conn) {
 		}
 	}
 
+	// 读取客户端请求的数据，TCP/IP会按照 ReaderBuffersize 的大下限制来读取数据包，假如大于 ReaderBuffsize，则读取多次
 	r := bufio.NewReaderSize(conn, ReaderBuffsize)
 
 	for {
