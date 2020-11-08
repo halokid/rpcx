@@ -564,6 +564,7 @@ func (client *Client) send(ctx context.Context, call *Call) {
   data := req.Encode()
 
   _, err := client.Conn.Write(data)   // todo: 向连接服务端的conn写入数据
+  logx.Printf("client send data to serv: %+v", data)
   if err != nil {
     client.mutex.Lock()
     call = client.pending[seq]
@@ -594,6 +595,8 @@ func (client *Client) send(ctx context.Context, call *Call) {
     client.Conn.SetWriteDeadline(time.Now().Add(client.option.WriteTimeout))
   }
 
+  // todo: 输出call的整体数据
+  logx.Printf("after send data to serv, call is: %+v", data)
 }
 
 func (client *Client) input() {

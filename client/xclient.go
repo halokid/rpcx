@@ -457,6 +457,7 @@ func (c *xClient) Call(ctx context.Context, serviceMethod string, args interface
 	}
 
 	var err error
+	// todo: xClient在 selectClient中内存初始化为 client
 	k, client, err := c.selectClient(ctx, c.servicePath, serviceMethod, args)
 	if err != nil {
 		if c.failMode == Failfast {
