@@ -13,6 +13,9 @@ import (
   "strconv"
   "sync"
   "time"
+  "reflect"
+  "unsafe"
+  "fmt"
 
   "github.com/opentracing/opentracing-go"
   "github.com/rubyist/circuitbreaker"
@@ -48,7 +51,8 @@ var DefaultOption = Option{
   Retries:        3,
   RPCPath:        share.DefaultRPCPath,
   ConnectTimeout: 10 * time.Second,
-  SerializeType:  protocol.MsgPack,
+  //SerializeType:  protocol.MsgPack,
+  SerializeType:  protocol.JSON,
   CompressType:   protocol.None,
   BackupLatency:  10 * time.Millisecond,
 }
@@ -564,7 +568,12 @@ func (client *Client) send(ctx context.Context, call *Call) {
   data := req.Encode()
 
   _, err := client.Conn.Write(data)   // todo: 向连接服务端的conn写入数据
-  logx.Printf("client send data to serv: %+v", data)
+  //logx.Printf("client send data to serv: %+v -- %+v -- %+v", reflect.TypeOf(data), data, string(data[0:]))
+  logx.Printf("client send data to serv: %+v ==> %+v ==> %+v", reflect.TypeOf(data), data, *(*string)(unsafe.Pointer(&data)))
+  logx.Printf("%+v", *(*string)(unsafe.Pointer(&data)))
+  fmt.Printf(" --  " + string(data[:]) + "\n")
+  fmt.Printf("头16位是:--- " + string(data[:16]) + "\n")
+
   if err != nil {
     client.mutex.Lock()
     call = client.pending[seq]
@@ -596,7 +605,7 @@ func (client *Client) send(ctx context.Context, call *Call) {
   }
 
   // todo: 输出call的整体数据
-  logx.Printf("after send data to serv, call is: %+v", data)
+  logx.Printf("after send data to serv, call is: %+v ==> %+v ==> %+v ==> %+v", reflect.TypeOf(call), call, call.Args, call.Reply)
 }
 
 func (client *Client) input() {

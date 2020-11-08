@@ -186,7 +186,7 @@ func (s *Server) startShutdownListener() {
 // Serve starts and listens RPC requests.
 // It is blocked until receiving connectings from clients.
 func (s *Server) Serve(network, address string) (err error) {
-	s.startShutdownListener()
+	s.startShutdownListener()				// todo: 监听服务是否shutdown状态
 	var ln net.Listener
 	ln, err = s.makeListener(network, address)
 	if err != nil {
