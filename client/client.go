@@ -229,10 +229,14 @@ func (client *Client) Go(ctx context.Context, servicePath, serviceMethod string,
   client.injectOpenCensusSpan(ctx, call)
 
   call.Args = args
-  call.Reply = reply
+  call.Reply = reply      // todo: 这里已经初始化了reply的内存
+  logx.Printf("call.Reply 1 -------------- %+v", call.Reply)
+
   if done == nil {
+    logx.Printf("赋值给call.Doone 的 done 为空 ---- %+v", &done)
     done = make(chan *Call, 10) // buffered.
   } else {
+    logx.Printf("赋值给call.Doone 的 done 不为空 ------- %+v", &done)
     // If caller passes done != nil, it must arrange that
     // done has enough buffer for the number of simultaneous
     // RPCs that will be using that channel. If the channel
@@ -242,7 +246,12 @@ func (client *Client) Go(ctx context.Context, servicePath, serviceMethod string,
     }
   }
   call.Done = done
+  logx.Printf("call 4: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", reflect.TypeOf(call), call, call.Args, call.Reply)
+  logx.Printf("client.send之前 call.Done --------- %+v", call.Done)
   client.send(ctx, call)        // todo: 发送客户端请求给服务端
+  logx.Printf("client.send之后 call.Done --------- %+v", call.Done)
+  logx.Printf("client.send 之后  call.Done channel就会写进数据, 然后就不会阻塞")
+  logx.Printf("假如这个print比call 3的 select case后执行，则reply没数据，因为print输出调用call的时候，call已经被case从channel接收走了，%+v call 5: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
   return call
 }
 
@@ -308,6 +317,7 @@ func (client *Client) call(ctx context.Context, servicePath, serviceMethod strin
   seq := new(uint64)
   ctx = context.WithValue(ctx, seqKey{}, seq)
   Done := client.Go(ctx, servicePath, serviceMethod, args, reply, make(chan *Call, 1)).Done
+  logx.Printf("call Go Dong, 如果客户端收不到服务端的数据，这里会一直阻塞, 客户端收到服务端数据才会写进Done chann *call: %+v", Done)
 
   var err error
   select {
@@ -323,6 +333,7 @@ func (client *Client) call(ctx context.Context, servicePath, serviceMethod strin
 
     return ctx.Err()
   case call := <-Done:      // 当前的call已经完成
+    logx.Printf("从time.Now()得知这里是最后获取数据的 %+v call 3: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
     err = call.Error
     meta := ctx.Value(share.ResMetaDataKey)
     if meta != nil && len(call.ResMetadata) > 0 {
@@ -498,6 +509,9 @@ func urlencode(data map[string]string) string {
 func (client *Client) send(ctx context.Context, call *Call) {
 
   // Register this call.
+  // client.Conn.Write(data) 发送数据给服务端
+  logx.Printf("call 1: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", reflect.TypeOf(call), call, call.Args, call.Reply)
+
   client.mutex.Lock()       // 锁住client， mutex作为一个锁句柄，放在client里面作为属性，方便调用
   if client.shutdown || client.closing {
     call.Error = ErrShutdown
@@ -532,6 +546,7 @@ func (client *Client) send(ctx context.Context, call *Call) {
   req.SetMessageType(protocol.Request)
   req.SetSeq(seq)
   if call.Reply == nil {
+    logx.Println("call.Reply is nil, run here!!! -------------")
     req.SetOneway(true)
   }
 
@@ -567,13 +582,27 @@ func (client *Client) send(ctx context.Context, call *Call) {
   }
   data := req.Encode()
 
+  logx.Printf("%+v call 6: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
+
+  // todo: 发送给服务端之后，客户端是怎样获取返回的数据的呢？
+  // todo: 关键点1:  client 声明的 service reply结构体的数据是在 client.call 的流程中更改的, 也就是写入了服务端的返回数据， 而不是等 client.call 整个流程完成之后才写入的, client 监听 chan 作为 call流程的完成方式
+  // todo: 整体通信机制流程梳理
+  // todo: 1. client.Conn 和服务端建立连接，代码xclient.go 的 getCachedClient函数, 这个函数调用了 client/connection.go 的 Connect 函数
+  // todo: 2. 1建立连接之后， Connect函数的 c.r = bufio.NewReaderSize(conn, ReaderBuffsize)，会一直监听客户端和服务端连接的数据交互，只要服务端往客户端写数据， c.r就能获取到数据
+  // todo: 3.  Connect函数的 go c.input() 一直在监听 client 的 接收数据， 处理接收数据， 然后把完成之后的call对象，写入本身这个call的 call.Done 属性, 然后client 的 call函数的 case call := <-Done: 就能获取chan 的输入， 完成整个client.call的流程， 这一步需要看源码验证
   _, err := client.Conn.Write(data)   // todo: 向连接服务端的conn写入数据
+
+  logx.Printf("%+v call 7: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
+
   //logx.Printf("client send data to serv: %+v -- %+v -- %+v", reflect.TypeOf(data), data, string(data[0:]))
   logx.Printf("client send data to serv: %+v ==> %+v ==> %+v", reflect.TypeOf(data), data, *(*string)(unsafe.Pointer(&data)))
   logx.Printf("%+v", *(*string)(unsafe.Pointer(&data)))
   fmt.Printf(" --  " + string(data[:]) + "\n")
   fmt.Printf("头16位是:--- " + string(data[:16]) + "\n")
 
+  logx.Printf("%+v call 8: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
+
+  ///**
   if err != nil {
     client.mutex.Lock()
     call = client.pending[seq]
@@ -586,11 +615,16 @@ func (client *Client) send(ctx context.Context, call *Call) {
     protocol.FreeMsg(req)
     return
   }
+  //*/
 
   isOneway := req.IsOneway()
   protocol.FreeMsg(req)
 
+  // todo: 输出call的整体数据， 这里因为call 是一个 chan， 可能被其他协程的select监听输出了，所以这里输出的call是一个初始化的call，还没有赋值reply的都有可能，所以这里不应该这样输出， 会误导调试数据逻辑
+  logx.Printf("%+v call 2: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
+
   if isOneway {
+    logx.Printf(" ======= after call isOneway =======")
     client.mutex.Lock()
     call = client.pending[seq]
     delete(client.pending, seq)
@@ -604,8 +638,6 @@ func (client *Client) send(ctx context.Context, call *Call) {
     client.Conn.SetWriteDeadline(time.Now().Add(client.option.WriteTimeout))
   }
 
-  // todo: 输出call的整体数据
-  logx.Printf("after send data to serv, call is: %+v ==> %+v ==> %+v ==> %+v", reflect.TypeOf(call), call, call.Args, call.Reply)
 }
 
 func (client *Client) input() {
@@ -637,6 +669,7 @@ func (client *Client) input() {
     isServerMessage := (res.MessageType() == protocol.Request && !res.IsHeartbeat() && res.IsOneway())
     if !isServerMessage {
       client.mutex.Lock()
+      // fixme: 如果这个seq是一样的， 会不会不同的处理请求，取得了同一个call？？gateway现在的sep是一样的， 这个要验证下， 如果取得了同一个call的话，可能会产生 call对象错乱的问题， 而造成数据错误, 目前client/serqver模式没有这个问题
       call = client.pending[seq]      // todo: 取得在SendRaw的时候写入的pending call
       delete(client.pending, seq)
       client.mutex.Unlock()
@@ -646,14 +679,17 @@ func (client *Client) input() {
 
     switch {    // todo: 协程重复执行 input()， 这个switch逻辑一会一直监听执行
     case call == nil:
+      logx.Printf(" ========= go client.input() 1, call is nil ========")
       if isServerMessage {
         if client.ServerMessageChan != nil {
           go client.handleServerRequest(res)
         }
         continue
       }
+
     case res.MessageStatusType() == protocol.Error:
       // We've got an error response. Give this to the request
+      logx.Printf(" ========= go client.input() 2, client msg protocol Error ========")
       if len(res.Metadata) > 0 {
         call.ResMetadata = res.Metadata
         call.Error = ServiceError(res.Metadata[protocol.ServiceError])
@@ -664,7 +700,9 @@ func (client *Client) input() {
         call.Metadata[XErrorMessage] = call.Error.Error()
       }
       call.done()
+
     default:
+      logx.Printf(" ========= go client.input() 3, all is fine ========")
       if call.Raw {
         //log.Debugf("res.Payload 3 --------------------- %+v", res.Payload)
         //log.Debugf("call.Reply 2 --------------------- %+v", call.Reply)

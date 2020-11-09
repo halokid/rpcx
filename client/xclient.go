@@ -471,6 +471,7 @@ func (c *xClient) Call(ctx context.Context, serviceMethod string, args interface
 		retries := c.option.Retries
 		for retries >= 0 {
 			retries--
+			log.Println("retries ------------ ", retries)
 
 			if client != nil {
 				err = c.wrapCall(ctx, client, serviceMethod, args, reply)
@@ -772,9 +773,11 @@ func (c *xClient) wrapCall(ctx context.Context, client RPCClient, serviceMethod 
 	}
 
 	ctx = share.NewContext(ctx)
-	// DoPreCall会处理一些opentracking的逻辑
+	// DoPreCall会处理一些opentracking的逻辑, 封装client plugins 的 DoPostCall 方法
 	c.Plugins.DoPreCall(ctx, c.servicePath, serviceMethod, args)
+	// 调用服务端
 	err := client.Call(ctx, c.servicePath, serviceMethod, args, reply)
+	// 封装client plugins 的 DoPostCall 方法
 	c.Plugins.DoPostCall(ctx, c.servicePath, serviceMethod, args, reply, err)
 
 	return err

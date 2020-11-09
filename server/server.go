@@ -16,6 +16,7 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+	logx "log"
 
 	"os"
 	"os/signal"
@@ -352,6 +353,8 @@ func (s *Server) serveConn(conn net.Conn) {
 		ctx := share.WithValue(context.Background(), RemoteConnContextKey, conn)
 
 		req, err := s.readRequest(ctx, r)
+		logx.Printf("req: %+v, err: %+v", req, err)
+		
 		if err != nil {
 			if err == io.EOF {
 				log.Infof("client has closed this conn: %s", conn.RemoteAddr().String())
@@ -375,6 +378,7 @@ func (s *Server) serveConn(conn net.Conn) {
 		}
 
 		if err != nil {
+			logx.Printf("err 1 ---------------- %+v", err)
 			if !req.IsOneway() {
 				res := req.Clone()
 				res.SetMessageType(protocol.Response)
@@ -399,14 +403,19 @@ func (s *Server) serveConn(conn net.Conn) {
 			}
 			continue
 		}
+		
 		go func() {
+			logx.Printf("server handle go func ----------------")
+			logx.Printf("req 1: %+v ==> %+v ==> %+v \n <===== server handle =====>\n\n", time.Now(), req, string(req.Payload[:]))
 			atomic.AddInt32(&s.handlerMsgNum, 1)
 			defer atomic.AddInt32(&s.handlerMsgNum, -1)
 
 			if req.IsHeartbeat() {
 				req.SetMessageType(protocol.Response)
 				data := req.Encode()
+				logx.Printf("isHeartbeat data: %+v", data)
 				conn.Write(data)
+				//conn.Write([]byte("xxxxxx"))		// fixme: just my test
 				return
 			}
 
@@ -414,9 +423,12 @@ func (s *Server) serveConn(conn net.Conn) {
 			newCtx := share.WithLocalValue(share.WithLocalValue(ctx, share.ReqMetaDataKey, req.Metadata),
 				share.ResMetaDataKey, resMetadata)
 
+			logx.Printf("===== Server DoPreHandleRequest Start =====")
 			s.Plugins.DoPreHandleRequest(newCtx, req)
+			logx.Printf("===== Server DoPreHandleRequest End =====")
 
-			res, err := s.handleRequest(newCtx, req)
+			res, err := s.handleRequest(newCtx, req)   // todo: 这里调用实际的服务方法，并返回给客户端
+			logx.Printf("No Heartbeat res: %+v, res.Payload: %+v, err: %+v", res, string(res.Payload[:]), err)
 
 			if err != nil {
 				log.Warnf("rpcx: failed to handle request: %v", err)
@@ -441,7 +453,8 @@ func (s *Server) serveConn(conn net.Conn) {
 					res.SetCompressType(req.CompressType())
 				}
 				data := res.Encode()
-				conn.Write(data)
+				logx.Printf("No Heartbeat data: %+v", data)
+				conn.Write(data)			// todo: res就是在服务端执行的结果，这里是把结果写回给客户端， 假如注释，client就会一直阻塞在监听服务端的返回
 				//res.WriteTo(conn)
 			}
 			s.Plugins.DoPostWriteResponse(newCtx, req, res, err)
@@ -449,7 +462,8 @@ func (s *Server) serveConn(conn net.Conn) {
 			protocol.FreeMsg(req)
 			protocol.FreeMsg(res)
 		}()
-	}
+		
+	}		// END FOR
 }
 
 func isShutdown(s *Server) bool {
@@ -498,7 +512,7 @@ func (s *Server) handleRequest(ctx context.Context, req *protocol.Message) (res 
 
 	res.SetMessageType(protocol.Response)
 	s.serviceMapMu.RLock()
-	service := s.serviceMap[serviceName]
+	service := s.serviceMap[serviceName]				// 服务端执行的时候，会把服务的对象句柄放在serviceMap里面, serviceName作为key
 	s.serviceMapMu.RUnlock()
 	if service == nil {
 		err = errors.New("rpcx: can't find service " + serviceName)
@@ -542,13 +556,15 @@ func (s *Server) handleRequest(ctx context.Context, req *protocol.Message) (res 
 
 	if !req.IsOneway() {
 		data, err := codec.Encode(replyv)
-		argsReplyPools.Put(mtype.ReplyType, replyv)
+		logx.Printf("No Oneway 写入反射的replyv ------ %+v", replyv)
+		argsReplyPools.Put(mtype.ReplyType, replyv)			// fixme: 写入一个argsReply的池，即使不写入，客户端依然可以获取服务端的返回，暂时不清楚作用
 		if err != nil {
 			return handleError(res, err)
 
 		}
 		res.Payload = data
 	} else if replyv != nil {
+		logx.Printf("IsOneway 写入反射的replyv ------ %+v", replyv)
 		argsReplyPools.Put(mtype.ReplyType, replyv)
 	}
 
