@@ -427,7 +427,7 @@ func (s *Server) serveConn(conn net.Conn) {
 			s.Plugins.DoPreHandleRequest(newCtx, req)
 			logx.Printf("===== Server DoPreHandleRequest End =====")
 
-			res, err := s.handleRequest(newCtx, req)   // todo: 这里调用实际的服务方法，并返回给客户端
+			res, err := s.handleRequest(newCtx, req)   // todo: 这里调用实际的服务方法， 服务和方法的逻辑是在服务端执行的，并返回给客户端
 			logx.Printf("No Heartbeat res: %+v, res.Payload: %+v, err: %+v", res, string(res.Payload[:]), err)
 
 			if err != nil {

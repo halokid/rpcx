@@ -248,7 +248,9 @@ func (client *Client) Go(ctx context.Context, servicePath, serviceMethod string,
   call.Done = done
   logx.Printf("call 4: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", reflect.TypeOf(call), call, call.Args, call.Reply)
   logx.Printf("client.send之前 call.Done --------- %+v", call.Done)
+
   client.send(ctx, call)        // todo: 发送客户端请求给服务端
+
   logx.Printf("client.send之后 call.Done --------- %+v", call.Done)
   logx.Printf("client.send 之后  call.Done channel就会写进数据, 然后就不会阻塞")
   logx.Printf("假如这个print比call 3的 select case后执行，则reply没数据，因为print输出调用call的时候，call已经被case从channel接收走了，%+v call 5: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
@@ -332,6 +334,7 @@ func (client *Client) call(ctx context.Context, servicePath, serviceMethod strin
     }
 
     return ctx.Err()
+
   case call := <-Done:      // 当前的call已经完成
     logx.Printf("从time.Now()得知这里是最后获取数据的 %+v call 3: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
     err = call.Error
@@ -589,7 +592,8 @@ func (client *Client) send(ctx context.Context, call *Call) {
   // todo: 整体通信机制流程梳理
   // todo: 1. client.Conn 和服务端建立连接，代码xclient.go 的 getCachedClient函数, 这个函数调用了 client/connection.go 的 Connect 函数
   // todo: 2. 1建立连接之后， Connect函数的 c.r = bufio.NewReaderSize(conn, ReaderBuffsize)，会一直监听客户端和服务端连接的数据交互，只要服务端往客户端写数据， c.r就能获取到数据
-  // todo: 3.  Connect函数的 go c.input() 一直在监听 client 的 接收数据， 处理接收数据， 然后把完成之后的call对象，写入本身这个call的 call.Done 属性, 然后client 的 call函数的 case call := <-Done: 就能获取chan 的输入， 完成整个client.call的流程， 这一步需要看源码验证
+  // todo: 3.  Connect函数的 go c.input() 一直在监听 client 的 接收数据， 处理接收数据， 然后把完成之后的call对象，写入本身这个call的 call.Done 属性, 然后client 的 call函数的 case call := <-Done: 就能获取chan 的输入， 完成整个client.call的流程
+  // todo: 4.  那究竟是怎么把服务端的返回写入 call.Reply的呢？ 在 c.input函数里面， 通过 call = client.pending[seq]  取得每一次的call对象， 再通过 err = codec.Decode(data, call.Reply)，赋值给call.Reply, 然后因为开始客户端定义 reply := &Reply{},  是一个引用指针， 当 call.Reply = reply的时候， call.Reply 承接了这个指针， 当改变  call.Reply 的值时， 就会改变 &Reply{}, 就会改变 reply， 所以客户端可以用reply来捕获服务端的输出, 具体的范例在 testWriteToReply
   _, err := client.Conn.Write(data)   // todo: 向连接服务端的conn写入数据
 
   logx.Printf("%+v call 7: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
@@ -654,6 +658,7 @@ func (client *Client) input() {
     //log.Debugf("len: client.r 2 ---------------------  %+v", client.r)
     //log.Debugf("res.data 1 ---------------------  %+v", res)
     // todo: 是input改变了 client.r 的值???,  Decode函数一直在读取 client.r的数据
+    // todo: res 就是服务端执行之后，返回给客户端的数据
     err = res.Decode(client.r)
     //log.Debugf("res.Payload 2 --------------------- %+v", res.Payload)
 
@@ -670,6 +675,7 @@ func (client *Client) input() {
     if !isServerMessage {
       client.mutex.Lock()
       // fixme: 如果这个seq是一样的， 会不会不同的处理请求，取得了同一个call？？gateway现在的sep是一样的， 这个要验证下， 如果取得了同一个call的话，可能会产生 call对象错乱的问题， 而造成数据错误, 目前client/serqver模式没有这个问题
+      // todo: 通过这里取得call对象，然后把 服务端的返回写入 call.Reply
       call = client.pending[seq]      // todo: 取得在SendRaw的时候写入的pending call
       delete(client.pending, seq)
       client.mutex.Unlock()
@@ -715,6 +721,7 @@ func (client *Client) input() {
           if codec == nil {
             call.Error = ServiceError(ErrUnsupportedCodec.Error())
           } else {
+            // todo: 把服务端的处理结果写入 call.Reply, 从而影响 reply = &Reply{}, 具体范例在echo client sample 的 testWriteToReply
             err = codec.Decode(data, call.Reply)
             if err != nil {
               call.Error = ServiceError(err.Error())
@@ -727,7 +734,7 @@ func (client *Client) input() {
 
       }
 
-      call.done()       // todo: 更改call状态的逻辑
+      call.done()       // todo: 更改call状态的逻辑, 把数据写入 call.Done 这个 chann, 触发 client.go 的 case call := <-Done 这段逻辑， 代表client的call完成
     }
   }
   // Terminate pending calls.
@@ -754,7 +761,8 @@ func (client *Client) input() {
     }
     client.pluginClosed = true
   }
-  client.Conn.Close()
+
+  client.Conn.Close()         // todo: client关闭与服务端的连接
   client.shutdown = true
   closing := client.closing
   if err == io.EOF {
