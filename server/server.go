@@ -353,7 +353,7 @@ func (s *Server) serveConn(conn net.Conn) {
 		ctx := share.WithValue(context.Background(), RemoteConnContextKey, conn)
 
 		req, err := s.readRequest(ctx, r)
-		logx.Printf("req: %+v, err: %+v", req, err)
+		log.ADebug.Print("req: %+v, err: %+v", req, err)
 		
 		if err != nil {
 			if err == io.EOF {
@@ -405,15 +405,15 @@ func (s *Server) serveConn(conn net.Conn) {
 		}
 		
 		go func() {
-			logx.Printf("server handle go func ----------------")
-			logx.Printf("req 1: %+v ==> %+v ==> %+v \n <===== server handle =====>\n\n", time.Now(), req, string(req.Payload[:]))
+			log.ADebug.Print("server handle go func ----------------")
+			log.ADebug.Print("req 1: %+v ==> %+v ==> %+v \n <===== server handle =====>\n\n", time.Now(), req, string(req.Payload[:]))
 			atomic.AddInt32(&s.handlerMsgNum, 1)
 			defer atomic.AddInt32(&s.handlerMsgNum, -1)
 
 			if req.IsHeartbeat() {
 				req.SetMessageType(protocol.Response)
 				data := req.Encode()
-				logx.Printf("isHeartbeat data: %+v", data)
+				log.ADebug.Print("isHeartbeat data: %+v", data)
 				conn.Write(data)
 				//conn.Write([]byte("xxxxxx"))		// fixme: just my test
 				return
@@ -423,12 +423,12 @@ func (s *Server) serveConn(conn net.Conn) {
 			newCtx := share.WithLocalValue(share.WithLocalValue(ctx, share.ReqMetaDataKey, req.Metadata),
 				share.ResMetaDataKey, resMetadata)
 
-			logx.Printf("===== Server DoPreHandleRequest Start =====")
+			log.ADebug.Print("===== Server DoPreHandleRequest Start =====")
 			s.Plugins.DoPreHandleRequest(newCtx, req)
-			logx.Printf("===== Server DoPreHandleRequest End =====")
+			log.ADebug.Print("===== Server DoPreHandleRequest End =====")
 
 			res, err := s.handleRequest(newCtx, req)   // todo: 这里调用实际的服务方法， 服务和方法的逻辑是在服务端执行的，并返回给客户端
-			logx.Printf("No Heartbeat res: %+v, res.Payload: %+v, err: %+v", res, string(res.Payload[:]), err)
+			log.ADebug.Print("No Heartbeat res: %+v, res.Payload: %+v, err: %+v", res, string(res.Payload[:]), err)
 
 			if err != nil {
 				log.Warnf("rpcx: failed to handle request: %v", err)
@@ -453,7 +453,8 @@ func (s *Server) serveConn(conn net.Conn) {
 					res.SetCompressType(req.CompressType())
 				}
 				data := res.Encode()
-				logx.Printf("No Heartbeat data: %+v", data)
+				log.ADebug.Print("No Heartbeat data: %+v", string(data[:]))
+				//logx.Printf("No Heartbeat data: %+v", string(data[:]))
 				conn.Write(data)			// todo: res就是在服务端执行的结果，这里是把结果写回给客户端， 假如注释，client就会一直阻塞在监听服务端的返回
 				//res.WriteTo(conn)
 			}
@@ -556,7 +557,7 @@ func (s *Server) handleRequest(ctx context.Context, req *protocol.Message) (res 
 
 	if !req.IsOneway() {
 		data, err := codec.Encode(replyv)
-		logx.Printf("No Oneway 写入反射的replyv ------ %+v", replyv)
+		log.ADebug.Print("No Oneway 写入反射的replyv ------ %+v", replyv)
 		argsReplyPools.Put(mtype.ReplyType, replyv)			// fixme: 写入一个argsReply的池，即使不写入，客户端依然可以获取服务端的返回，暂时不清楚作用
 		if err != nil {
 			return handleError(res, err)

@@ -14,12 +14,18 @@ var ADebug *AnalyDebug
 
 func init() {
   ADebug = &AnalyDebug{
-    Stdout:   true,
+    Stdout:   false,
   }
 }
 
-func (a *AnalyDebug) Print(i... interface{}) {
+func (a *AnalyDebug) Print(format string, v... interface{}) {
   if a.Stdout {
-    log.Printf("%+v", i)
+    //log.Println("len v ---------", len(v))
+    if len(v) > 0 {
+      log.Printf(format, v...)
+    } else {
+      log.Print(format)
+    }
+    log.Println()
   }
 }
