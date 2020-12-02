@@ -61,7 +61,7 @@ type XClient interface {
 
 	// 非go语言
 	IsGo() bool
-	GetNoGoServers() map[string]string
+	GetNotGoServers() map[string]string
 }
 
 // KVPair contains a key and a string.
@@ -111,7 +111,8 @@ type xClient struct {
 	serverMessageChan chan<- *protocol.Message
 	
 	isGo bool			// 非go服务端的标识
-	noGoServers map[string]string			// 非go服务端的地址
+	svcTyp   string
+	notGoServers map[string]string			// 非go服务端的地址
 }
 
 // NewXClient creates a XClient that supports service discovery and service governance.
@@ -155,18 +156,20 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 	//}
 	
 	//log.Println("找到的servers:", servers)
+	/*
 	isNotGoSvc := []string{"typ=py", "typ=rust"}
 	for _, v := range servers {
 		//if strings.Index(v, "typ=py") != -1 {
 		if ColorfulRabbit.InSlice(v, isNotGoSvc) {	
 			// 为非go语言
 			client.isGo = false 
-			client.noGoServers = servers
+			client.notGoServers = servers
 			break
 		} 
 	}
+	*/
+	genNotGoSvc(client, servers)
 	
-
 	if selectMode != Closest && selectMode != SelectByUser {
 		client.selector = newSelector(selectMode, servers)
 	}
@@ -180,6 +183,31 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 	}
 
 	return client
+}
+
+func genNotGoSvc(client *xClient, servers map[string]string) error {
+	// generate the info for not go service
+	isNotGo := false
+	for _, v := range servers {
+		if strings.Index(v, "typ=py") != -1 {
+			//client.isGo = false
+			client.svcTyp = "py"
+			isNotGo = true
+			//client.notGoServers = servers
+			//break
+		} else if strings.Index(v, "typ=rust") != -1 {
+			client.svcTyp = "rust"
+			isNotGo = true
+		}
+
+		if isNotGo {
+			client.isGo = false
+			client.notGoServers = servers
+		}
+		break
+	}
+	log.Printf("client genNotGoSvc -------------- %+v", client)
+	return nil
 }
 
 // NewBidirectionalXClient creates a new xclient that can receive notifications from servers.
@@ -674,7 +702,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 	//log.Println("xclient SendRow selectClient -------------")
 	// todo: 根据XClient的数据来生成Client，最后的SendRaw逻辑是由Client调用的
 	k, client, err := c.selectClient(ctx, r.ServicePath, r.ServiceMethod, r.Payload)
-	log.Printf("c.selectClient err ----------", err.(ServiceError), "---", err.Error())
+	//log.Printf("c.selectClient err ----------", err.(ServiceError), "---", err.Error())
 	log.Printf("DEBUG halokid 2 ------ ")
 
 	if err != nil {
@@ -726,7 +754,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 			if client != nil {
 				//log.Printf("client Failover ----- %+v", client)
 				m, payload, err := client.SendRaw(ctx, r)
-				log.Println("Failover模式 err --------- ", err.Error())
+				//log.Println("Failover模式 err --------- ", err.Error())
 				if err == nil {
 					log.Println("SendRaw ----------------", m)
 					//log.Println("payload ----------------", string(payload))
@@ -1109,8 +1137,8 @@ func (c *xClient) IsGo() bool {
 	return c.isGo
 }
 
-func (c *xClient) GetNoGoServers() map[string]string {
-	return c.noGoServers
+func (c *xClient) GetNotGoServers() map[string]string {
+	return c.notGoServers
 }
 
 
