@@ -24,7 +24,7 @@ func newSelector(selectMode SelectMode, servers map[string]string) Selector {
 	switch selectMode {
 	case RandomSelect:
 		return newRandomSelector(servers)
-	case RoundRobin:
+	case RoundRobin:				// todo: gateway默认用的选择服务节点的方式
 		return newRoundRobinSelector(servers)
 	case WeightedRoundRobin:
 		return newWeightedRoundRobinSelector(servers)
@@ -83,6 +83,7 @@ func newRoundRobinSelector(servers map[string]string) Selector {
 		ss = append(ss, k)
 	}
 
+	// todo: 返回具体的选择服务节点算法struct, 然后调用struct的Select方法
 	return &roundRobinSelector{servers: ss}
 }
 
@@ -91,11 +92,11 @@ func (s *roundRobinSelector) Select(ctx context.Context, servicePath, serviceMet
 	if len(ss) == 0 {
 		return ""
 	}
-	i := s.i
-	i = i % len(ss)
+	i := s.i			// todo: 当第一次选择某个服务节点时， i为0
+	i = i % len(ss)		// todo: 当第二次Select的时候 i为1, 则 1 % len(ss) = 1, 则会选择 ss[1]，其他依此类推
 	s.i = i + 1
 
-	return ss[i]
+	return ss[i]		// todo: 第一次 impl Select 则返回 ss[0]
 }
 
 func (s *roundRobinSelector) UpdateServer(servers map[string]string) {

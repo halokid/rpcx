@@ -141,6 +141,7 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 	for _, p := range pairs {
 		servers[p.Key] = p.Value
 	}
+	// todo: 过滤禁用了的服务节点
 	filterByStateAndGroup(client.option.Group, servers)
 
 	// todo: 定义servers， 修复相似服务名bug在这里
@@ -772,6 +773,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 				c.removeClient(k, client)
 			}
 			//select another server
+			// todo: 这里会重新调用Selector 的 Select方法， 从新选择另外的节点, 默认的Selector 是 roundRobinSelector
 			k, client, e = c.selectClient(ctx, r.ServicePath, r.ServiceMethod, r.Payload)
 		}
 
