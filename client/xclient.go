@@ -1,5 +1,9 @@
 package client
-
+/*
+设计思路:
+XClient interface 封装所有对外的方法， 可外部调用
+xClient struct 定义为内部struct， imple方法并定义属性， 只能内部调用
+ */
 import (
 	"bufio"
 	"context"
@@ -62,6 +66,7 @@ type XClient interface {
 	// 非go语言
 	IsGo() bool
 	GetNotGoServers() map[string]string
+	GetSvcTyp() string
 }
 
 // KVPair contains a key and a string.
@@ -1141,6 +1146,10 @@ func (c *xClient) IsGo() bool {
 
 func (c *xClient) GetNotGoServers() map[string]string {
 	return c.notGoServers
+}
+
+func (c *xClient) GetSvcTyp() string {
+	return c.svcTyp
 }
 
 

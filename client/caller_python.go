@@ -1,69 +1,49 @@
 package client
-
-import (
-  "github.com/halokid/ColorfulRabbit"
-  "strings"
-)
-
 /*
 implement caller for python service
- */
+*/
 
-type CallerPy struct {
-  *Caller
-}
+import (
+  "encoding/json"
+  "github.com/mozillazg/request"
+  "log"
+  "net/http"
+  "time"
+)
 
-func NewCallerPy() CallerIt {
-  caller := &Caller{
-    typ:    "py",
-    selectMode:   RoundRobin,
+func (c *caller) invokePy(nodeAddr string, svc string, call string, bodyTran map[string]interface{}) ([]byte, error) {
+  url := "http://" + nodeAddr + "/api"
+  log.Println("url -----------", url)
+  hc := &http.Client{}
+  timeOut := time.Duration(3 * time.Second)
+  hc.Timeout = timeOut
+  req := request.NewRequest(hc)
+  //req.Headers["POMX-Svc"] = svc
+  //req.Headers["POMX-Call"] = call
+  log.Println("bodyTran ---------------", bodyTran)
+  req.Json = map[string]interface{} {
+    "method": svc + "." + call,
+    //"params": map[string]string{"name":"jimmy"},
+    "params": bodyTran,
+    "id": "1",
   }
-
-  return &CallerPy{
-    caller,
+  log.Println("req.Json -------------------- ", req.Json)
+  rsp, err := req.Post(url)
+  if err != nil {
+    log.Println("请求python服务失败")
   }
+  //rspData, err := ioutil.ReadAll(rsp.Body)
+  j, err := rsp.Json()
+  log.Println("rsp json --------", j)
+  defer rsp.Body.Close()
+  jb := j.Get("result").Interface()
+  //return []byte(rspData)
+  log.Println("jb ----------", jb)
+  //return []byte(jb)
+  //return []byte("")
+  b, err := json.Marshal(jb)
+  return b, nil
 }
-
-/*
-func (c *CallerPy) GetSvcTyp() string {
-  return c.typ
-}
-
-func (c *CallerPy) selectNode(notGoServers map[string]string) string {
-  node := ""
-  // get nodes addr
-  nodesAddr := ColorfulRabbit.GetKeysSs(notGoServers)
-  switch c.selectMode {
-  case RoundRobin:
-    node = c.roundRobinSelect(nodesAddr)
-  }
-  return node
-}
-
-func genNodeAddr(nodeAddrDirty string) string {
-  // change tcp@xxx to xxx
-  nodeAddrSp := strings.Split(nodeAddrDirty, "@")
-  return nodeAddrSp[1]
-}
-
-func (c *CallerPy) roundRobinSelect(nodesAddr []string) string {
-  if len(nodesAddr) == 0 {
-    return ""
-  }
-  nodeIdx := c.nodeIdx
-  nodeIdx = nodeIdx % len(nodesAddr)
-  c.nodeIdx = nodeIdx + 1
-
-  return genNodeAddr(nodesAddr[nodeIdx])
-}
- */
-
-func (c *CallerPy) Invoke(nodeAddr string) ([]byte, error) {
-  return []byte{}, nil
-}
-
-
-
 
 
 
