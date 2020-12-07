@@ -1,0 +1,17 @@
+syntax = "proto3";
+package porust;
+
+service Pors {
+  rpc Invoke (Req) returns (Rsp);
+}
+
+message Req {
+  string reqdata = 1;
+}
+
+message Rsp {
+  string rspdata = 1;
+}
+
+
+
