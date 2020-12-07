@@ -20,7 +20,9 @@ a service expose for a http api use gateway
 - [x] add jaeger support plugin, ./serverplugin/jaeger.go
 - [x] support rust grpc service invoke
 - [ ] support rust client invoke go service
-- [ ] support rust client invoke go service
+- [ ] support rust client invoke python service
+- [ ] support java grpc service invoke
+- [ ] support java client invoke go & rust & python service
 
 
 ## Install
