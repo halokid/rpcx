@@ -151,7 +151,7 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 
 	// todo: 定义servers， 修复相似服务名bug在这里
 	client.servers = servers
-	log2.ADebug.Print("client.servers ---------------", client.servers)
+	log2.ADebug.Print("client.servers --------------- %+v", client.servers)
 	
 	// 检查第一个key属于什么typ
 	//serCk := servers[kCk]
@@ -506,7 +506,7 @@ func (c *xClient) Call(ctx context.Context, serviceMethod string, args interface
 		retries := c.option.Retries
 		for retries >= 0 {
 			retries--
-			log2.ADebug.Print("retries ------------ ", retries)
+			log2.ADebug.Print("retries ------------ %+v ", retries)
 
 			if client != nil {
 				err = c.wrapCall(ctx, client, serviceMethod, args, reply)

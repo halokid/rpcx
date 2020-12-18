@@ -154,6 +154,7 @@ func (d *ConsulDiscovery) RemoveWatcher(ch chan []*KVPair) {
 
 	d.chans = chans
 }
+
 func (d *ConsulDiscovery) watch() {
 	/** todo: 定时更新服务的节点信息， 初次读取服务之后会写入缓存，后续就靠这个来定时更新服务节点 */
 	for {
@@ -196,6 +197,7 @@ func (d *ConsulDiscovery) watch() {
 			case <-d.stopCh:
 				log.Info("discovery has been closed")
 				return
+
 			case ps := <-c:
 				if ps == nil {
 					break readChanges
@@ -233,6 +235,12 @@ func (d *ConsulDiscovery) watch() {
 					}()
 				}
 				d.mu.Unlock()
+
+			//todo: 假如两个case的情况都匹配不了，不断的for循环，会造成cpu暴涨300%，所以加上default延迟响应
+			// todo: 因为本地保存有服务的缓存信息， 所以就算暂时连接不了consul，更新不了缓存信息，服务也不会有影响
+			default:
+				time.Sleep(5 * time.Second)
+				return
 			}
 		}
 
