@@ -183,7 +183,9 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 	client.Plugins = &pluginContainer{}
 
 	ch := client.discovery.WatchService()
+	log2.ADebug.Print("观察svc变化 ch ----------- %+v", ch)
 	if ch != nil {
+		log2.ADebug.Print("--@@@----守护监听注册中心svc的变化----@@@--")
 		client.ch = ch
 		go client.watch(ch)
 	}
@@ -669,6 +671,7 @@ func uncoverError(err error) bool {
 
 	return true
 }
+
 func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]string, []byte, error) {
 	log.Println("c.servers -------------------", c.servers)
 
