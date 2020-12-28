@@ -9,6 +9,7 @@ import (
 	"github.com/docker/libkv/store"
 	"github.com/docker/libkv/store/consul"
 	"github.com/smallnest/rpcx/log"
+	log2 "github.com/smallnest/rpcx/log"
 )
 
 func init() {
@@ -116,6 +117,7 @@ func NewConsulDiscoveryTemplate(basePath string, consulAddr []string, options *s
 
 // Clone clones this ServiceDiscovery with new servicePath.
 func (d *ConsulDiscovery) Clone(servicePath string) ServiceDiscovery {
+	log2.ADebug.Print("-----@@---- ConsulDiscovery Clone ----@@------ ")
 	return NewConsulDiscoveryStore(d.basePath+"/"+servicePath, d.kv)
 }
 
@@ -157,6 +159,7 @@ func (d *ConsulDiscovery) RemoveWatcher(ch chan []*KVPair) {
 
 func (d *ConsulDiscovery) watch() {
 	/** todo: 定时更新服务的节点信息， 初次读取服务之后会写入缓存，后续就靠这个来定时更新服务节点 */
+	log2.ADebug.Print("----------- 执行 go d.watch() ------------")
 	for {
 		var err error
 		var c <-chan []*store.KVPair
@@ -164,6 +167,7 @@ func (d *ConsulDiscovery) watch() {
 
 		retry := d.RetriesAfterWatchFailed
 		for d.RetriesAfterWatchFailed < 0 || retry >= 0 {
+			log2.ADebug.Print("----------- 执行 go d.watch() -> 执行WatchTree ------------")
 			c, err = d.kv.WatchTree(d.basePath, nil)
 			if err != nil {
 				if d.RetriesAfterWatchFailed > 0 {
@@ -191,6 +195,8 @@ func (d *ConsulDiscovery) watch() {
 
 		prefix := d.basePath + "/"
 
+		log2.ADebug.Print("----------- 执行 go d.watch() -> 完成WatchTree ------------")
+
 	readChanges:
 		for {
 			select {
@@ -199,12 +205,13 @@ func (d *ConsulDiscovery) watch() {
 				return
 
 			case ps := <-c:
+				log2.ADebug.Print("----------- 执行 go d.watch() -> WatchTree -> Tree有变化 ---------")
 				if ps == nil {
 					break readChanges
 				}
 				var pairs []*KVPair // latest servers
 				for _, p := range ps {
-					//logx.Println("watch nodes --------------", p.Key, p.Value)
+					log2.ADebug.Print("watch nodes --------------", p.Key, ": ", string(p.Value))
 					pKeySp := strings.Split(p.Key, "/")
 					if len(pKeySp) > 0 && (pKeySp[0] + "/" + pKeySp[1] != d.basePath) {
 						continue
@@ -239,8 +246,8 @@ func (d *ConsulDiscovery) watch() {
 			//todo: 假如两个case的情况都匹配不了，不断的for循环，会造成cpu暴涨300%，所以加上default延迟响应
 			// todo: 因为本地保存有服务的缓存信息， 所以就算暂时连接不了consul，更新不了缓存信息，服务也不会有影响
 			default:
-				time.Sleep(5 * time.Second)
-				return
+				time.Sleep(3 * time.Second)
+				//return		// todo: 不要加返回，不然就会跳出 watch(), 从而监察不了服务列表的变化了, 默认情况下，更改了服务节点信息， 最慢3秒更新
 			}
 		}
 

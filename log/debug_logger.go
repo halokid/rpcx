@@ -14,7 +14,8 @@ var ADebug *AnalyDebug
 
 func init() {
   ADebug = &AnalyDebug{
-    Stdout:   true,
+    //Stdout:   true,
+    Stdout:   false,
   }
 }
 

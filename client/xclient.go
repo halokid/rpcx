@@ -132,6 +132,7 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 	}
 	client.isGo = true
 
+	// todo: 初次获取服务节点列表数据
 	pairs := discovery.GetServices()
 	servers := make(map[string]string, len(pairs))
 	/**
@@ -143,6 +144,7 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 		servers[p.Key] = p.Value
 	}
 	*/
+	// todo: 生产服务节点信息slice
 	for _, p := range pairs {
 		servers[p.Key] = p.Value
 	}
@@ -174,6 +176,7 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 		} 
 	}
 	*/
+
 	genNotGoSvc(client, servers)
 	
 	if selectMode != Closest && selectMode != SelectByUser {
@@ -284,7 +287,13 @@ func (c *xClient) Auth(auth string) {
 
 // watch changes of service and update cached clients.
 func (c *xClient) watch(ch chan []*KVPair) {
+	log2.ADebug.Print("len ch --------------- %+v", len(ch))
 	for pairs := range ch {
+
+		for k, v := range pairs {
+			log2.ADebug.Print("pairs k, v ------- %+v, %+v", k, v)
+		}
+
 		servers := make(map[string]string, len(pairs))
 		for _, p := range pairs {
 			servers[p.Key] = p.Value
@@ -293,11 +302,16 @@ func (c *xClient) watch(ch chan []*KVPair) {
 		filterByStateAndGroup(c.option.Group, servers)
 		c.servers = servers
 
+		for k, v := range servers {
+			log2.ADebug.Print("servers k, v ------- %+v, %+v", k, v)
+		}
+
 		if c.selector != nil {
 			c.selector.UpdateServer(servers)
 		}
 
 		c.mu.Unlock()
+		log2.ADebug.Print("\n\r")
 	}
 }
 func filterByStateAndGroup(group string, servers map[string]string) {
@@ -673,7 +687,7 @@ func uncoverError(err error) bool {
 }
 
 func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]string, []byte, error) {
-	log.Println("c.servers -------------------", c.servers)
+	log.Println("SendRaw c.servers -------------------", c.servers)
 
 	// fixme： 性能瓶颈测试 start -----------------------------------------------
 	/**
@@ -712,7 +726,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 	// todo: 根据XClient的数据来生成Client，最后的SendRaw逻辑是由Client调用的
 	k, client, err := c.selectClient(ctx, r.ServicePath, r.ServiceMethod, r.Payload)
 	//log.Printf("c.selectClient err ----------", err.(ServiceError), "---", err.Error())
-	log.Printf("DEBUG halokid 2 ------ ")
+	log2.ADebug.Print("DEBUG halokid 2 ------ ")
 
 	if err != nil {
 		if c.failMode == Failfast {
@@ -754,12 +768,12 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 		}
 		return nil, nil, err
 	case Failover:			// todo: 这个是gateway默认采用的失败方式
-		log.Printf("DEBUG halokid 4 ------ ")
+		log2.ADebug.Print("DEBUG halokid 4 ------ ")
 		retries := c.option.Retries
-		log.Println("Failover模式 retries --------- ", retries)
+		log2.ADebug.Print("Failover模式 retries --------- ", retries)
 		for retries >= 0 {
 			retries--
-			log.Println("Failover模式 client --------- ", client)
+			log2.ADebug.Print("Failover模式 client --------- ", client)
 			if client != nil {
 				//log.Printf("client Failover ----- %+v", client)
 				m, payload, err := client.SendRaw(ctx, r)
