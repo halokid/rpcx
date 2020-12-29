@@ -251,7 +251,7 @@ func (s *Server) serveListener(ln net.Listener) error {
 					tempDelay = max
 				}
 
-				log.Errorf("rpcx: Accept error: %v; retrying in %v", e, tempDelay)
+				log.Errorf("rpcx: 服务端接收Accept错误: %v; retrying in %v", e, tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			}
@@ -263,12 +263,15 @@ func (s *Server) serveListener(ln net.Listener) error {
 		}
 		tempDelay = 0
 
+		// todo: 如果是TCP连接协议, 则
 		if tc, ok := conn.(*net.TCPConn); ok {
 			tc.SetKeepAlive(true)
 			tc.SetKeepAlivePeriod(3 * time.Minute)
 			tc.SetLinger(10)
 		}
 
+		// todo: 依赖注入， 每一个plugin都通过这个来注入逻辑
+		// todo: 依赖注入不一定要传一个interface类型， 只要是触发的逻辑有注入过程就可以了，比如这里就是 conn, flag = plugin.HandleConnAccept(conn)
 		conn, ok := s.Plugins.DoPostConnAccept(conn)
 		if !ok {
 			closeChannel(s, conn)
@@ -336,7 +339,7 @@ func (s *Server) serveConn(conn net.Conn) {
 		}
 	}
 
-	// 读取客户端请求的数据，TCP/IP会按照 ReaderBuffersize 的大下限制来读取数据包，假如大于 ReaderBuffsize，则读取多次
+	// 读取客户端请求的数据，TCP/IP会按照 ReaderBuffersize 的大下限制来读取数据包，假如大于 ReaderBuffsize，则读取多次, 分配 ReaderBuffsize长度的byte
 	r := bufio.NewReaderSize(conn, ReaderBuffsize)
 
 	for {
@@ -351,7 +354,8 @@ func (s *Server) serveConn(conn net.Conn) {
 		}
 
 		ctx := share.WithValue(context.Background(), RemoteConnContextKey, conn)
-
+	
+		// todo: 根据rpcx的协议格式来decode读取到的数据
 		req, err := s.readRequest(ctx, r)
 		log.ADebug.Print("req: %+v, err: %+v", req, err)
 		
@@ -468,6 +472,7 @@ func (s *Server) serveConn(conn net.Conn) {
 }
 
 func isShutdown(s *Server) bool {
+	// todo: atomic.LoadInt32表示在load数据的时候，数据不会被其他gor修改
 	return atomic.LoadInt32(&s.inShutdown) == 1
 }
 
