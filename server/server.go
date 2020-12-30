@@ -489,6 +489,7 @@ func (s *Server) readRequest(ctx context.Context, r io.Reader) (req *protocol.Me
 		return nil, err
 	}
 	// pool req?
+	// todo: sync.Pool 重用 protocol Message结构体
 	req = protocol.GetPooledMsg()
 	err = req.Decode(r)
 	if err == io.EOF {

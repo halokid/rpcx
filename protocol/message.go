@@ -119,6 +119,7 @@ func NewMessage() *Message {
 type Header [12]byte
 
 // CheckMagicNumber checks whether header starts rpcx magic number.
+// todo: 验证数据header是否以 rpcx 定义的 magicNumber 来做开头，如果不是则为非法数据
 func (h Header) CheckMagicNumber() bool {
 	return h[0] == magicNumber
 }
