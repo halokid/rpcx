@@ -491,6 +491,7 @@ func (s *Server) readRequest(ctx context.Context, r io.Reader) (req *protocol.Me
 	// pool req?
 	// todo: sync.Pool 重用 protocol Message结构体
 	req = protocol.GetPooledMsg()
+	log.ADebug.Print("readRequest req原本是一个空结构体 -------------- %+v", req)
 	err = req.Decode(r)
 	if err == io.EOF {
 		return req, err

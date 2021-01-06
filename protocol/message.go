@@ -5,6 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
+	"github.com/smallnest/rpcx/log"
 	"io"
 
 	"github.com/smallnest/rpcx/util"
@@ -408,6 +409,7 @@ func (m *Message) Decode(r io.Reader) error {
 
 	//log.Debugf("res.data 2 ---------------------  %+v", m)
 	// parse header
+	log.ADebug.Print("io.ReadFull读取前m.Header, 已经定义协议头了 ---------- %+v", m.Header)
 	_, err := io.ReadFull(r, m.Header[:1])
 	if err != nil {
 		return err
@@ -420,14 +422,18 @@ func (m *Message) Decode(r io.Reader) error {
 	if err != nil {
 		return err
 	}
+	log.ADebug.Print("io.ReadFull读取后m.Header ---------- %+v", m.Header)
 
 	//total
+	// todo: 读取整个 m.Header 的数据, poolUint32Data 就是创建一个 [4][]byte 的数据， 一共32位
 	lenData := poolUint32Data.Get().(*[]byte)
+	log.ADebug.Print("io.ReadFull读取前lenData ---------- %+v, %+v", lenData, &lenData)
 	_, err = io.ReadFull(r, *lenData)
 	if err != nil {
 		poolUint32Data.Put(lenData)
 		return err
 	}
+	log.ADebug.Print("io.ReadFull读取后lenData ---------- %+v, %+v", lenData, &lenData)
 	l := binary.BigEndian.Uint32(*lenData)
 	poolUint32Data.Put(lenData)
 

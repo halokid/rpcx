@@ -79,7 +79,13 @@ func TestHeader_SetSerializeType(t *testing.T) {
 	t.Logf("slx[4:] ---------------- %+v", slx[4:])
 	bs := binary.BigEndian.Uint64(slx[4:])
 	t.Logf("bs ------------------ %+v", bs)
-	t.Logf("slx ------------------ %+v", slx)
+
+	t.Logf("slx 1 ------------------ %+v", slx)
+	var seq uint64
+	//seq = 10086
+	seq = 10087
+	binary.BigEndian.PutUint64(slx[4:], seq)
+	t.Logf("slx 2 ------------------ %+v", slx)
 }
 
 
