@@ -217,7 +217,7 @@ func genNotGoSvc(client *xClient, servers map[string]string) error {
 		}
 		break
 	}
-	log.Printf("client genNotGoSvc -------------- %+v", client)
+	log2.ADebug.Print("client genNotGoSvc -------------- %+v", client)
 	return nil
 }
 
@@ -687,7 +687,7 @@ func uncoverError(err error) bool {
 }
 
 func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]string, []byte, error) {
-	log.Println("SendRaw c.servers -------------------", c.servers)
+	log2.ADebug.Print("SendRaw c.servers -------------------", c.servers)
 
 	// fixme： 性能瓶颈测试 start -----------------------------------------------
 	/**
@@ -779,7 +779,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 				m, payload, err := client.SendRaw(ctx, r)
 				//log.Println("Failover模式 err --------- ", err.Error())
 				if err == nil {
-					log.Println("SendRaw ----------------", m)
+					log2.ADebug.Print("SendRaw 得到的 m ----------------", m)
 					//log.Println("payload ----------------", string(payload))
 					return m, payload, nil
 				} else {
@@ -820,6 +820,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 		return m, payload, nil
 	}
 }
+
 func (c *xClient) wrapCall(ctx context.Context, client RPCClient, serviceMethod string, args interface{}, reply interface{}) error {
 	if client == nil {
 		return ErrServerUnavailable

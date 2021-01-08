@@ -397,6 +397,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
   //log.Debugf("done 3 ----------------- %+v", done)
   client.mutex.Unlock()
 
+  // todo: 假如采用加密方式， Encode 会加密请求的数据
   data := r.Encode() // 请求的所有数据转化为[]byte
   _, err := client.Conn.Write(data)
   //log.Debug("client.Conn.Write err -----------------", err)
@@ -444,11 +445,13 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
     return nil, nil, ctx.Err()
 
   case call := <-done:        // todo: 写入done channel的就是这个call请求本身
-    //log.Debugf("---@@@------- <-done --------@@@--- %+v", done)
+    log.ADebug.Print("---@@@------- <-done --------@@@--- %+v", done)
     //log.Debugf("select call := <-done  %+v ----------------", call)
     err = call.Error
     m = call.Metadata
+    log.ADebug.Print("Client.SendRaw 中得到的 m ----------- %+v, %+v", len(m), m)
     if call.Reply != nil {
+      log.ADebug.Print("----@@----call.Reply != nil ----@@----")
       payload = call.Reply.([]byte)
     }
 
@@ -456,6 +459,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
   //log.Debugf("done 5 ----------------- %+v", done)
   }
 
+  // fixme: 设计缺陷， 这里return的根本就不是处理之后的m, payload， 因为假如是采用了加密方式的话， 这里的数据已经变了
   return m, payload, err
 }
 
@@ -657,6 +661,7 @@ func (client *Client) input() {
     //log.Debugf("res.data 1 ---------------------  %+v", res)
     // todo: 是input改变了 client.r 的值???,  Decode函数一直在读取 client.r的数据
     // todo: res 就是服务端执行之后，返回给客户端的数据
+    // todo: 包含解压的过程
     err = res.Decode(client.r)
     //log.Debugf("res.Payload 2 --------------------- %+v", res.Payload)
 
@@ -710,6 +715,7 @@ func (client *Client) input() {
       if call.Raw {
         //log.Debugf("res.Payload 3 --------------------- %+v", res.Payload)
         //log.Debugf("call.Reply 2 --------------------- %+v", call.Reply)
+        // todo: 重点， 假如是GW的请求， 根本就不会走 解压缩的逻辑， 因为GW调用 SendRaw 方法， 定义了 Call.RAW 为 true
         call.Metadata, call.Reply, _ = convertRes2Raw(res)
         //log.Debugf("call.Reply 3 --------------------- %+v", string(call.Reply.([]uint8)))
       } else {

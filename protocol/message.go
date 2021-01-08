@@ -242,6 +242,7 @@ func (m Message) Encode() []byte {
 		if compressor == nil {
 			m.SetCompressType(None)
 		} else {
+			log.ADebug.Print("数据 压缩 方式为----", m.Metadata["Content-Encoding"], m.CompressType())
 			payload, err = compressor.Zip(m.Payload)
 			if err != nil {
 				m.SetCompressType(None)
@@ -500,6 +501,7 @@ func (m *Message) Decode(r io.Reader) error {
 		if compressor == nil {
 			return ErrUnsupportedCompressor
 		}
+		log.ADebug.Print("数据 解压缩 方式为----", m.Metadata["Content-Encoding"], m.CompressType())
 		m.Payload, err = compressor.Unzip(m.Payload)
 		if err != nil {
 			return err
