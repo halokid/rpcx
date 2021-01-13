@@ -353,7 +353,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
   ctx = context.WithValue(ctx, seqKey{}, r.Seq())
 
   call := new(Call)
-  call.Raw = true
+  call.Raw = true     // todo: 定义Raw为true， 服务端不会进行对数据的序列化
   call.ServicePath = r.ServicePath
   call.ServiceMethod = r.ServiceMethod
   meta := ctx.Value(share.ReqMetaDataKey)
@@ -397,7 +397,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
   //log.Debugf("done 3 ----------------- %+v", done)
   client.mutex.Unlock()
 
-  // todo: 假如采用加密方式， Encode 会加密请求的数据
+  // todo: 这里是压缩， 不是用序列化方法， 假如采用加密方式， Encode 会加密请求的数据
   data := r.Encode() // 请求的所有数据转化为[]byte
   _, err := client.Conn.Write(data)
   //log.Debug("client.Conn.Write err -----------------", err)
@@ -405,6 +405,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
   //log.Debugf("call.Done 2 ----------------- %+v", call.Done)
 
   if err != nil {
+    logx.Println("client.Conn.Write(data) err -------", err)
     client.mutex.Lock()
     call = client.pending[seq]
     delete(client.pending, seq)
@@ -446,6 +447,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
 
   case call := <-done:        // todo: 写入done channel的就是这个call请求本身
     log.ADebug.Print("---@@@------- <-done --------@@@--- %+v", done)
+    logx.Printf("---@@@------- <-done --------@@@--- %+v", done)
     //log.Debugf("select call := <-done  %+v ----------------", call)
     err = call.Error
     m = call.Metadata
@@ -525,6 +527,7 @@ func (client *Client) send(ctx context.Context, call *Call) {
     return
   }
 
+  // todo: 数据序列化方式作为key传给 share.Codes这个map, 获取不同的序列化配适器
   codec := share.Codecs[client.option.SerializeType]
   if codec == nil {
     call.Error = ErrUnsupportedCodec
@@ -551,7 +554,7 @@ func (client *Client) send(ctx context.Context, call *Call) {
   req.SetMessageType(protocol.Request)
   req.SetSeq(seq)
   if call.Reply == nil {
-    logx.Println("call.Reply is nil, run here!!! -------------")
+    logx.Println("call.Reply is nil, 不需要服务端返回 run here!!! -------------")
     req.SetOneway(true)
   }
 
@@ -662,7 +665,11 @@ func (client *Client) input() {
     // todo: 是input改变了 client.r 的值???,  Decode函数一直在读取 client.r的数据
     // todo: res 就是服务端执行之后，返回给客户端的数据
     // todo: 包含解压的过程
+    log.ADebug.Print(" ========= res.MessageStatusType() 1 ========", res.MessageStatusType())
+
+    // todo: 包含序列化数据的过程， 如果客户端和服务端序列化方法不同， 会把产生的错误写进  res.MessageStatusType(). 如果是服务端检查到 序列化方法不对， 会返回给  client.r, 具体是会把 protol.Error 定义为1
     err = res.Decode(client.r)
+    log.ADebug.Print(" ========= res.MessageStatusType() 2 ========", res.MessageStatusType())
     //log.Debugf("res.Payload 2 --------------------- %+v", res.Payload)
 
     if err != nil {
@@ -698,7 +705,7 @@ func (client *Client) input() {
 
     case res.MessageStatusType() == protocol.Error:
       // We've got an error response. Give this to the request
-      log.ADebug.Print(" ========= go client.input() 2, client msg protocol Error ========")
+      log.ADebug.Print(" ========= 序列化数据错误 go client.input() 2, client msg protocol Error ========")
       if len(res.Metadata) > 0 {
         call.ResMetadata = res.Metadata
         call.Error = ServiceError(res.Metadata[protocol.ServiceError])

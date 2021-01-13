@@ -30,3 +30,14 @@ func (a *AnalyDebug) Print(format string, v... interface{}) {
     log.Println()
   }
 }
+
+func (a *AnalyDebug) PrintErr(format string, v... interface{}) {
+  if len(v) > 0 {
+    log.Printf(format, v...)
+  } else {
+    log.Print(format)
+  }
+  log.Println()
+}
+
+

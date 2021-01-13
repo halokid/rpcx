@@ -431,6 +431,7 @@ func (s *Server) serveConn(conn net.Conn) {
 			s.Plugins.DoPreHandleRequest(newCtx, req)
 			log.ADebug.Print("===== Server DoPreHandleRequest End =====")
 
+			// todo: 在这个方法里会调用序列化配适器来处理数据
 			res, err := s.handleRequest(newCtx, req)   // todo: 这里调用实际的服务方法， 服务和方法的逻辑是在服务端执行的，并返回给客户端
 			log.ADebug.Print("No Heartbeat res: %+v, res.Payload: %+v, err: %+v", res, string(res.Payload[:]), err)
 
@@ -537,6 +538,7 @@ func (s *Server) handleRequest(ctx context.Context, req *protocol.Message) (res 
 
 	var argv = argsReplyPools.Get(mtype.ArgType)
 
+	// todo: 获取序列化配适器
 	codec := share.Codecs[req.SerializeType()]
 	if codec == nil {
 		err = fmt.Errorf("can not find codec for %d", req.SerializeType())
@@ -639,6 +641,7 @@ func (s *Server) handleRequestForFunction(ctx context.Context, req *protocol.Mes
 }
 
 func handleError(res *protocol.Message, err error) (*protocol.Message, error) {
+	logx.Println("---@@@-----handleError---@@@---")
 	res.SetMessageStatusType(protocol.Error)
 	if res.Metadata == nil {
 		res.Metadata = make(map[string]string)
