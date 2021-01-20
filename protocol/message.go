@@ -135,7 +135,7 @@ func (h *Header) SetVersion(v byte) {
 	h[1] = v
 }
 
-// MessageType returns the message type.
+// MessageType returns the message type.  区别数据究竟是请求还是返回
 func (h Header) MessageType() MessageType {
 	return MessageType(h[2]&0x80) >> 7
 }
@@ -228,7 +228,7 @@ func (m Message) Clone() *Message {
 	return c
 }
 
-// Encode encodes messages.
+// Encode encodes messages. 按照约定的数据格式encode data数据
 func (m Message) Encode() []byte {
 	meta := encodeMetadata(m.Metadata)
 
@@ -263,17 +263,18 @@ func (m Message) Encode() []byte {
 	copy(data, m.Header[:])
 
 	//totalLen
-	binary.BigEndian.PutUint32(data[12:16], uint32(totalL))
+	binary.BigEndian.PutUint32(data[12:16], uint32(totalL))		// 在data的12到16的位置写入数据的总长度
 
-	binary.BigEndian.PutUint32(data[16:20], uint32(spL))
-	copy(data[20:20+spL], util.StringToSliceByte(m.ServicePath))
+	binary.BigEndian.PutUint32(data[16:20], uint32(spL))			// 在data的16到20的位置写入服务名称的总长度
+	copy(data[20:20+spL], util.StringToSliceByte(m.ServicePath)) // 写入服务的名称
 
-	binary.BigEndian.PutUint32(data[20+spL:24+spL], uint32(smL))
-	copy(data[24+spL:metaStart], util.StringToSliceByte(m.ServiceMethod))
+	binary.BigEndian.PutUint32(data[20+spL:24+spL], uint32(smL)) // 写入方法名称的长度
+	copy(data[24+spL:metaStart], util.StringToSliceByte(m.ServiceMethod))	// 写入方法的名称
 
-	binary.BigEndian.PutUint32(data[metaStart:metaStart+4], uint32(len(meta)))
+	binary.BigEndian.PutUint32(data[metaStart:metaStart+4], uint32(len(meta)))  // meta类似处理
 	copy(data[metaStart+4:], meta)
 
+	// payload类似处理
 	binary.BigEndian.PutUint32(data[payLoadStart:payLoadStart+4], uint32(len(payload)))
 	copy(data[payLoadStart+4:], payload)
 
@@ -355,6 +356,7 @@ func encodeMetadata(m map[string]string) []byte {
 	}
 	var buf bytes.Buffer
 	var d = make([]byte, 4)
+	// todo:  k长度 + k的值 + v长度 +v的值
 	for k, v := range m {
 		binary.BigEndian.PutUint32(d, uint32(len(k)))
 		buf.Write(d)
@@ -411,7 +413,7 @@ func (m *Message) Decode(r io.Reader) error {
 	//log.Debugf("res.data 2 ---------------------  %+v", m)
 	// parse header
 	log.ADebug.Print("io.ReadFull读取前m.Header, 已经定义协议头了 ---------- %+v", m.Header)
-	_, err := io.ReadFull(r, m.Header[:1])
+	_, err := io.ReadFull(r, m.Header[:1])		// todo: 读取协议头
 	if err != nil {
 		return err
 	}
@@ -419,7 +421,7 @@ func (m *Message) Decode(r io.Reader) error {
 		return fmt.Errorf("wrong magic number: %v", m.Header[0])
 	}
 
-	_, err = io.ReadFull(r, m.Header[1:])
+	_, err = io.ReadFull(r, m.Header[1:])		// todo: 读取协议header
 	if err != nil {
 		return err
 	}
@@ -429,13 +431,13 @@ func (m *Message) Decode(r io.Reader) error {
 	// todo: 读取整个 m.Header 的数据, poolUint32Data 就是创建一个 [4][]byte 的数据， 一共32位
 	lenData := poolUint32Data.Get().(*[]byte)
 	log.ADebug.Print("io.ReadFull读取前lenData ---------- %+v, %+v", lenData, &lenData)
-	_, err = io.ReadFull(r, *lenData)
+	_, err = io.ReadFull(r, *lenData)		// todo: 读取服务数据总长度
 	if err != nil {
 		poolUint32Data.Put(lenData)
 		return err
 	}
 	log.ADebug.Print("io.ReadFull读取后lenData ---------- %+v, %+v", lenData, &lenData)
-	l := binary.BigEndian.Uint32(*lenData)
+	l := binary.BigEndian.Uint32(*lenData)		// todo: 读取到数据总长度之后， 用大端位的方式解码出来
 	poolUint32Data.Put(lenData)
 
 	if MaxMessageLength > 0 && int(l) > MaxMessageLength {
@@ -464,17 +466,17 @@ func (m *Message) Decode(r io.Reader) error {
 
 	n := 0
 	// parse servicePath
-	l = binary.BigEndian.Uint32(data[n:4])
-	n = n + 4
+	l = binary.BigEndian.Uint32(data[n:4])		// todo: 根据数据的位置读取 message 的总长度数值
+	n = n + 4				// todo: 让 n 推后到 服务名称 开始的位置
 	nEnd := n + int(l)
-	m.ServicePath = util.SliceByteToString(data[n:nEnd])
-	n = nEnd
+	m.ServicePath = util.SliceByteToString(data[n:nEnd])		// todo: 根据数据位置读取 message 的服务名称
+	n = nEnd			// todo: 再次推后 n
 
 	// parse serviceMethod
 	l = binary.BigEndian.Uint32(data[n : n+4])
 	n = n + 4
 	nEnd = n + int(l)
-	m.ServiceMethod = util.SliceByteToString(data[n:nEnd])
+	m.ServiceMethod = util.SliceByteToString(data[n:nEnd])			// todo: 读取方法名
 	n = nEnd
 
 	// parse meta
@@ -490,7 +492,7 @@ func (m *Message) Decode(r io.Reader) error {
 	}
 	n = nEnd
 
-	// parse payload
+	// todo: parse payload
 	l = binary.BigEndian.Uint32(data[n : n+4])
 	_ = l
 	n = n + 4

@@ -407,7 +407,8 @@ func (s *Server) serveConn(conn net.Conn) {
 			}
 			continue
 		}
-		
+
+		// todo: 服务端处理客户端数据的gor
 		go func() {
 			log.ADebug.Print("server handle go func ----------------")
 			log.ADebug.Print("req 1: %+v ==> %+v ==> %+v \n <===== server handle =====>\n\n", time.Now(), req, string(req.Payload[:]))
@@ -440,7 +441,7 @@ func (s *Server) serveConn(conn net.Conn) {
 			}
 
 			s.Plugins.DoPreWriteResponse(newCtx, req, res)
-			if !req.IsOneway() {
+			if !req.IsOneway() {		// todo: 如果需要一次服务端有返回
 				if len(resMetadata) > 0 { //copy meta in context to request
 					meta := res.Metadata
 					if meta == nil {
@@ -517,9 +518,9 @@ func (s *Server) handleRequest(ctx context.Context, req *protocol.Message) (res 
 	serviceName := req.ServicePath
 	methodName := req.ServiceMethod
 
-	res = req.Clone()
+	res = req.Clone()		// todo: 返回的res和req的结构是一样的
 
-	res.SetMessageType(protocol.Response)
+	res.SetMessageType(protocol.Response)		// todo: 标识message的类型为response
 	s.serviceMapMu.RLock()
 	service := s.serviceMap[serviceName]				// 服务端执行的时候，会把服务的对象句柄放在serviceMap里面, serviceName作为key
 	s.serviceMapMu.RUnlock()
@@ -552,9 +553,12 @@ func (s *Server) handleRequest(ctx context.Context, req *protocol.Message) (res 
 
 	replyv := argsReplyPools.Get(mtype.ReplyType)
 
+	// todo: 执行services的方法，执行的结果写入reply, reply是指针， 所以call方法之后就会改版reply
 	if mtype.ArgType.Kind() != reflect.Ptr {
+		// 如果method arg的类型不是指针
 		err = service.call(ctx, mtype, reflect.ValueOf(argv).Elem(), reflect.ValueOf(replyv))
 	} else {
+		// 如果method arg的类型是指针
 		err = service.call(ctx, mtype, reflect.ValueOf(argv), reflect.ValueOf(replyv))
 	}
 

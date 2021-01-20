@@ -551,7 +551,7 @@ func (client *Client) send(ctx context.Context, call *Call) {
 
   //req := protocol.NewMessage()
   req := protocol.GetPooledMsg()
-  req.SetMessageType(protocol.Request)
+  req.SetMessageType(protocol.Request)    // 设置数据类型是request
   req.SetSeq(seq)
   if call.Reply == nil {
     logx.Println("call.Reply is nil, 不需要服务端返回 run here!!! -------------")
