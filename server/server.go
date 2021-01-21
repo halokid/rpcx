@@ -553,7 +553,7 @@ func (s *Server) handleRequest(ctx context.Context, req *protocol.Message) (res 
 
 	replyv := argsReplyPools.Get(mtype.ReplyType)
 
-	// todo: 执行services的方法，执行的结果写入reply, reply是指针， 所以call方法之后就会改版reply
+	// todo: 执行services的方法，执行的结果写入reply, reply是指针， 所以call方法之后就会改变reply
 	if mtype.ArgType.Kind() != reflect.Ptr {
 		// 如果method arg的类型不是指针
 		err = service.call(ctx, mtype, reflect.ValueOf(argv).Elem(), reflect.ValueOf(replyv))
