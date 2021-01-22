@@ -733,6 +733,8 @@ func (client *Client) input() {
             call.Error = ServiceError(ErrUnsupportedCodec.Error())
           } else {
             // todo: 把服务端的处理结果写入 call.Reply, 从而影响 reply = &Reply{}, 具体范例在echo client sample 的 testWriteToReply
+            log.ADebug.Print("data Decode --------- %+v, %+v", reflect.TypeOf(data), data)
+            log.ADebug.Print("call.Reply Decode --------- %+v, %+v", reflect.TypeOf(call.Reply), call.Reply)
             err = codec.Decode(data, call.Reply)
             if err != nil {
               call.Error = ServiceError(err.Error())
