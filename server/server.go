@@ -108,6 +108,7 @@ func NewServer(options ...OptionFn) *Server {
 		op(s)
 	}
 
+	log.ADebug.Print("Server default options 1 ------- %+v", s.options)
 	return s
 }
 
@@ -201,7 +202,7 @@ func (s *Server) Serve(network, address string) (err error) {
 
 	// try to start gateway
 	ln = s.startGateway(network, ln)
-
+	log.ADebug.Print("Server default options 2 ------- %+v", s.options)
 	return s.serveListener(ln)
 }
 
@@ -541,6 +542,7 @@ func (s *Server) handleRequest(ctx context.Context, req *protocol.Message) (res 
 
 	// todo: 获取序列化配适器
 	codec := share.Codecs[req.SerializeType()]
+	log.ADebug.Print("请求数据用得codec类型--------- %+v", req.SerializeType())
 	if codec == nil {
 		err = fmt.Errorf("can not find codec for %d", req.SerializeType())
 		return handleError(res, err)
