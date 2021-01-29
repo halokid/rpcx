@@ -569,14 +569,14 @@ func (s *Server) handleRequest(ctx context.Context, req *protocol.Message) (res 
 	}
 
 	if !req.IsOneway() {
-		data, err := codec.Encode(replyv)
+		data, err := codec.Encode(replyv)		// todo: 按照客户端定义的编码方式encode
 		log.ADebug.Print("No Oneway 写入反射的replyv ------ %+v", replyv)
 		argsReplyPools.Put(mtype.ReplyType, replyv)			// fixme: 写入一个argsReply的池，即使不写入，客户端依然可以获取服务端的返回，暂时不清楚作用
 		if err != nil {
 			return handleError(res, err)
 
 		}
-		res.Payload = data
+		res.Payload = data				// todo: 把服务端encode的数据([]byte)类型，赋值给res..Payload
 	} else if replyv != nil {
 		logx.Printf("IsOneway 写入反射的replyv ------ %+v", replyv)
 		argsReplyPools.Put(mtype.ReplyType, replyv)
