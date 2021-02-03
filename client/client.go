@@ -447,7 +447,6 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
 
   case call := <-done:        // todo: 写入done channel的就是这个call请求本身
     log.ADebug.Print("---@@@------- <-done --------@@@--- %+v", done)
-    logx.Printf("---@@@------- <-done --------@@@--- %+v", done)
     //log.Debugf("select call := <-done  %+v ----------------", call)
     err = call.Error
     m = call.Metadata
