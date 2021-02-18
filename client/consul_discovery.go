@@ -8,8 +8,8 @@ import (
 	"github.com/docker/libkv"
 	"github.com/docker/libkv/store"
 	"github.com/docker/libkv/store/consul"
-	"github.com/smallnest/rpcx/log"
-	log2 "github.com/smallnest/rpcx/log"
+	"github.com/halokid/rpcx-plus/log"
+	log2 "github.com/halokid/rpcx-plus/log"
 )
 
 func init() {

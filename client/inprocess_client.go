@@ -7,9 +7,9 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/smallnest/rpcx/log"
-	"github.com/smallnest/rpcx/protocol"
-	"github.com/smallnest/rpcx/share"
+	"github.com/halokid/rpcx-plus/log"
+	"github.com/halokid/rpcx-plus/protocol"
+	"github.com/halokid/rpcx-plus/share"
 )
 
 // InprocessClient is a in-process client for test.

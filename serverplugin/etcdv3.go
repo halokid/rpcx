@@ -14,7 +14,7 @@ import (
 	"github.com/docker/libkv/store"
 	metrics "github.com/rcrowley/go-metrics"
 	etcd "github.com/smallnest/libkv-etcdv3-store"
-	"github.com/smallnest/rpcx/log"
+	"github.com/halokid/rpcx-plus/log"
 )
 
 func init() {

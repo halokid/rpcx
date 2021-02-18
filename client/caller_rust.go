@@ -8,7 +8,7 @@ import (
   "log"
   "reflect"
 
-  pbx "github.com/smallnest/rpcx/client/proto"
+  pbx "github.com/halokid/rpcx-plus/client/proto"
   "golang.org/x/net/context"
   "google.golang.org/grpc"
 )

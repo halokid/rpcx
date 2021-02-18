@@ -7,10 +7,10 @@ import (
 	"log"
 	"sync"
 
-	"github.com/smallnest/rpcx/serverplugin"
+	"github.com/halokid/rpcx-plus/serverplugin"
 
 	multierror "github.com/hashicorp/go-multierror"
-	"github.com/smallnest/rpcx/protocol"
+	"github.com/halokid/rpcx-plus/protocol"
 )
 
 // OneClient wraps servicesPath and XClients.
