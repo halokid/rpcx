@@ -594,7 +594,7 @@ func (client *Client) send(ctx context.Context, call *Call) {
   // todo: 发送给服务端之后，客户端是怎样获取返回的数据的呢？
   // todo: 关键点1:  client 声明的 service reply结构体的数据是在 client.call 的流程中更改的, 也就是写入了服务端的返回数据， 而不是等 client.call 整个流程完成之后才写入的, client 监听 chan 作为 call流程的完成方式
   // todo: 整体通信机制流程梳理
-  // todo: 1. client.Conn 和服务端建立连接，代码xclient.go 的 getCachedClient函数, 这个函数调用了 client/connection.go 的 Connect 函数
+  // todo: 1. client.Conn 和服务端建立连接，代码xclient.go 的 getCachedClient 函数, 这个函数调用了 client/connection.go 的 Connect 函数, xClient在调用 Call 时触发 c.selectClient, 才会触发客户端跟服务端执行真正的网络连接， NewXClientPool 这个方法建立的pool仅仅只是一个对象重用的pool， 并不是真正的连接池
   // todo: 2. 1建立连接之后， Connect函数的 c.r = bufio.NewReaderSize(conn, ReaderBuffsize)，会一直监听客户端和服务端连接的数据交互，只要服务端往客户端写数据， c.r就能获取到数据
   // todo: 3.  Connect函数的 go c.input() 一直在监听 client 的 接收数据， 处理接收数据， 然后把完成之后的call对象，写入本身这个call的 call.Done 属性, 然后client 的 call函数的 case call := <-Done: 就能获取chan 的输入， 完成整个client.call的流程
   // todo: 4.  那究竟是怎么把服务端的返回写入 call.Reply的呢？ 在 c.input函数里面， 通过 call = client.pending[seq]  取得每一次的call对象， 再通过 err = codec.Decode(data, call.Reply)，赋值给call.Reply, 然后因为开始客户端定义 reply := &Reply{},  是一个引用指针， 当 call.Reply = reply的时候， call.Reply 承接了这个指针， 当改变  call.Reply 的值时， 就会改变 &Reply{}, 就会改变 reply， 所以客户端可以用reply来捕获服务端的输出, 具体的范例在 testWriteToReply
