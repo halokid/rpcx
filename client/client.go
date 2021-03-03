@@ -664,11 +664,11 @@ func (client *Client) input() {
     // todo: 是input改变了 client.r 的值???,  Decode函数一直在读取 client.r的数据
     // todo: res 就是服务端执行之后，返回给客户端的数据
     // todo: 包含解压的过程
-    log.ADebug.Print(" ========= res.MessageStatusType() 1 ========", res.MessageStatusType())
+    log.ADebug.Print(" ========= res.MessageStatusType() 1 ======== %+v", res.MessageStatusType())
 
     // todo: 包含序列化数据的过程， 如果客户端和服务端序列化方法不同， 会把产生的错误写进  res.MessageStatusType(). 如果是服务端检查到 序列化方法不对， 会返回给  client.r, 具体是会把 protol.Error 定义为1
     err = res.Decode(client.r)
-    log.ADebug.Print(" ========= res.MessageStatusType() 2 ========", res.MessageStatusType())
+    log.ADebug.Print(" ========= res.MessageStatusType() 2 ======== %+v", res.MessageStatusType())
     //log.Debugf("res.Payload 2 --------------------- %+v", res.Payload)
 
     if err != nil {

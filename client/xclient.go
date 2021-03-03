@@ -687,7 +687,7 @@ func uncoverError(err error) bool {
 }
 
 func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]string, []byte, error) {
-	log2.ADebug.Print("SendRaw c.servers -------------------", c.servers)
+	log2.ADebug.Print("SendRaw c.servers ------------------- %+v", c.servers)
 
 	// fixme： 性能瓶颈测试 start -----------------------------------------------
 	/**
@@ -770,20 +770,20 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 	case Failover:			// todo: 这个是gateway默认采用的失败方式
 		log2.ADebug.Print("DEBUG halokid 4 ------ ")
 		retries := c.option.Retries
-		log2.ADebug.Print("Failover模式 retries --------- ", retries)
+		log2.ADebug.Print("Failover模式 retries --------- %+v ", retries)
 		for retries >= 0 {
 			retries--
-			log2.ADebug.Print("Failover模式 client --------- ", client)
+			log2.ADebug.Print("Failover模式 client --------- %+v ", client)
 			if client != nil {
 				//log.Printf("client Failover ----- %+v", client)
 				m, payload, err := client.SendRaw(ctx, r)
 				//log.Println("Failover模式 err --------- ", err.Error())
 				if err == nil {
-					log2.ADebug.Print("SendRaw 得到的 m ----------------", m)
+					log2.ADebug.Print("SendRaw 得到的 m ---------------- %+v", m)
 					//log.Println("payload ----------------", string(payload))
 					return m, payload, nil
 				} else {
-					log2.ADebug.PrintErr("[ERROR] ----------------", err.Error())
+					log2.ADebug.PrintErr("[ERROR] ---------------- %+v", err.Error())
 				}
 				
 				if _, ok := err.(ServiceError); ok {

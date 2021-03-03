@@ -17,7 +17,7 @@ require (
 	github.com/edwingeng/doublejump v0.0.0-20200219153503-7cfc0ed6e836
 	github.com/facebookgo/clock v0.0.0-20150410010913-600d898af40a // indirect
 	github.com/fastly/go-utils v0.0.0-20180712184237-d95a45783239 // indirect
-	github.com/fatih/color v1.9.0
+	github.com/fatih/color v1.10.0
 	github.com/go-errors/errors v1.0.1 // indirect
 	github.com/gogo/protobuf v1.2.0
 	github.com/golang/protobuf v1.3.2
