@@ -363,12 +363,15 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 	//log.Println("c.cachedClient ----- @@@@@@@@@@@@@@---- ", c.cachedClient)
 	if client != nil {
 		if !client.IsClosing() && !client.IsShutdown() {
-			return client, nil
+			return client, nil			// todo: 命中cacheClient则返回
 		}
+		log2.ADebug.Print("client的k和状态 --- k: %+v, IsClosing(): %+v,  IsShutdown(): %+v",
+											k, client.IsClosing(), client.IsShutdown())
 		delete(c.cachedClient, k)
 		client.Close()
 	}
 
+	// todo:  k不命中， 则client 为 nil, 这里更多的价值只是声明client类型
 	client = c.cachedClient[k]
 	if client == nil || client.IsShutdown() {
 		network, addr := splitNetworkAndAddress(k)
