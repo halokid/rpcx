@@ -317,7 +317,7 @@ func (client *Client) call(ctx context.Context, servicePath, serviceMethod strin
   seq := new(uint64)
   ctx = context.WithValue(ctx, seqKey{}, seq)
   Done := client.Go(ctx, servicePath, serviceMethod, args, reply, make(chan *Call, 1)).Done
-  log.ADebug.Print("call Go Dong, 如果客户端收不到服务端的数据，这里会一直阻塞, 客户端收到服务端数据才会写进Done chann *call: %+v", Done)
+  log.ADebug.Print("call Go Done, 如果客户端收不到服务端的数据，这里会一直阻塞, 客户端收到服务端数据才会写进Done chann *call: %+v", Done)
 
   var err error
   select {

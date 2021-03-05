@@ -93,10 +93,12 @@ func newDirectConn(c *Client, network, address string) (net.Conn, error) {
 		dialer := &net.Dialer{
 			Timeout: c.option.ConnectTimeout,
 		}
+		logx.Printf("tls.DialWithDialer 建立client 和 server的连接")
 		tlsConn, err = tls.DialWithDialer(dialer, network, address, c.option.TLSConfig)
 		//or conn:= tls.Client(netConn, &config)
 		conn = net.Conn(tlsConn)
 	} else {
+		logx.Printf("net.DialTimeout 建立client和server的连接, timeout: %+v", c.option.ConnectTimeout)
 		conn, err = net.DialTimeout(network, address, c.option.ConnectTimeout)
 	}
 

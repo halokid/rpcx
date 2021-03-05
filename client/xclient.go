@@ -365,7 +365,7 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 		if !client.IsClosing() && !client.IsShutdown() {
 			return client, nil			// todo: 命中cacheClient则返回
 		}
-		log2.ADebug.Print("client的k和状态 --- k: %+v, IsClosing(): %+v,  IsShutdown(): %+v",
+		log.Printf("client的k和状态 --- k: %+v, IsClosing(): %+v,  IsShutdown(): %+v",
 											k, client.IsClosing(), client.IsShutdown())
 		delete(c.cachedClient, k)
 		client.Close()
@@ -391,6 +391,7 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 			// todo: client连接到server， 并且把连接句柄写入conn, 这是一个长连接，cache会一直保留这个连接
 			// todo:  Connect函数会触发一个input的gor, go c.input() 这一句， 这个input就是更改 client.pending[seq]， 也就是网络请求连接状态的逻辑，SendRaw 和 call 都是靠这个来改变网络请求的状态
 			err := client.Connect(network, addr)
+			log.Printf("完成client.Connect动作, err -------------- %+v", err)
 			if err != nil {
 				if breaker != nil {
 					breaker.(Breaker).Fail()
