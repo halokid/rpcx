@@ -344,6 +344,7 @@ func (c *xClient) selectClient(ctx context.Context, servicePath, serviceMethod s
 func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 	// TODO: improve the lock
 	//log.Println("getCachedClient -----------------")
+	// todo: 声明client为的接口类 RPCClient类型
 	var client RPCClient
 	var needCallPlugin bool
 	c.mu.Lock()
@@ -365,8 +366,8 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 		if !client.IsClosing() && !client.IsShutdown() {
 			return client, nil			// todo: 命中cacheClient则返回
 		}
-		log.Printf("client的k和状态 --- k: %+v, IsClosing(): %+v,  IsShutdown(): %+v",
-											k, client.IsClosing(), client.IsShutdown())
+		log.Printf("client IsClosing() or IsShutdown(), client的k和状态 --- k: %+v," +
+			" IsClosing(): %+v,  IsShutdown(): %+v", k, client.IsClosing(), client.IsShutdown())
 		delete(c.cachedClient, k)
 		client.Close()
 	}
