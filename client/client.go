@@ -612,6 +612,7 @@ func (client *Client) send(ctx context.Context, call *Call) {
   log.ADebug.Print("%+v call 8: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
 
   ///**
+  // todo: 如果client 跟 server在通信过程中有错误，则从client 的 pending 列表里面delete这个有错误的call， 设置call.Error 和 call.done()，直接返回
   if err != nil {
     client.mutex.Lock()
     call = client.pending[seq]
