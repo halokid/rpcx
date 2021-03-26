@@ -205,7 +205,7 @@ func (d *ConsulDiscovery) watch() {
         return
 
       case ps := <-c:
-        log2.ADebug.Print("----------- 执行 go d.watch() -> WatchTree -> Tree有变化 ---------")
+        log2.ADebug.Print("----------- 执行 go d.watch() -> WatchTree -> 监控Tree变化 ------")
         if ps == nil {
           log.Errorf("ps := <-c，读取到 ps == nil，表示注册中心watch读取到为nil，跳出readChanges")
           break readChanges
