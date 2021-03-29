@@ -696,8 +696,8 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 	log2.ADebug.Print("SendRaw c.servers ------------------- %+v", c.servers)
 	if len(c.servers) == 0 {
 		log.Printf("找不到服务节点信息 svc: %+v, md: %+v", r.ServicePath, r.ServiceMethod)
-		return nil, nil, errors.New(fmt.Sprintf("找不到服务节点信息 svc: %+v, md: %+v",
-									r.ServicePath, r.ServiceMethod))
+		errMsg := fmt.Sprintf(`{"msg": "找不到服务节点信息 svc: %+v, md: %+v"}`, r.ServicePath, r.ServiceMethod)
+		return nil, []byte(errMsg), errors.New(errMsg)
 	}
 
 	// fixme： 性能瓶颈测试 start -----------------------------------------------
