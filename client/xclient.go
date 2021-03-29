@@ -8,6 +8,7 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
 	log2 "github.com/halokid/rpcx-plus/log"
 	"io"
 	"log"
@@ -693,6 +694,11 @@ func uncoverError(err error) bool {
 
 func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]string, []byte, error) {
 	log2.ADebug.Print("SendRaw c.servers ------------------- %+v", c.servers)
+	if len(c.servers) == 0 {
+		log.Printf("找不到服务节点信息 svc: %+v, md: %+v", r.ServicePath, r.ServiceMethod)
+		return nil, nil, errors.New(fmt.Sprintf("找不到服务节点信息 svc: %+v, md: %+v",
+									r.ServicePath, r.ServiceMethod))
+	}
 
 	// fixme： 性能瓶颈测试 start -----------------------------------------------
 	/**
@@ -808,11 +814,11 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 			err = e
 		}
 
-		log.Printf("DEBUG halokid 5 ------ ")
+		log2.ADebug.Print("DEBUG halokid 5 ------ ")
 		return nil, nil, err
 
 	default: //Failfast
-		log.Printf("client 44444------ %+v", client)
+		log2.ADebug.Print("client 44444------ %+v", client)
 		m, payload, err := client.SendRaw(ctx, r)
 
 		if err != nil {

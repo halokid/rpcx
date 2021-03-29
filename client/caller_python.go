@@ -15,7 +15,7 @@ func (c *caller) invokePy(nodeAddr string, svc string, call string, bodyTran map
   url := "http://" + nodeAddr + "/api"
   log.Println("url -----------", url)
   hc := &http.Client{}
-  timeOut := time.Duration(3 * time.Second)
+  timeOut := time.Duration(15 * time.Second)
   hc.Timeout = timeOut
   req := request.NewRequest(hc)
   //req.Headers["POMX-Svc"] = svc
