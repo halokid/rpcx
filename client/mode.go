@@ -19,9 +19,9 @@ const (
 type SelectMode int
 
 const (
-	//RandomSelect is selecting randomly
+	//RandomSelect is selecting randomly, 随机选择
 	RandomSelect SelectMode = iota
-	//RoundRobin is selecting by round robin
+	//RoundRobin is selecting by round robin, 轮询调度
 	RoundRobin
 	//WeightedRoundRobin is selecting by weighted round robin
 	WeightedRoundRobin

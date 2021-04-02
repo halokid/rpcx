@@ -68,6 +68,8 @@ type XClient interface {
 	IsGo() bool
 	GetNotGoServers() map[string]string
 	GetSvcTyp() string
+
+	GetReverseProxy()	bool
 }
 
 // KVPair contains a key and a string.
@@ -83,7 +85,7 @@ type ServiceDiscoveryFilter func(kvp *KVPair) bool
 
 // ServiceDiscovery defines ServiceDiscovery of zookeeper, etcd and consul
 type ServiceDiscovery interface {
-	// todo: 每种服务注册的方式都要继续这个interface的方法
+	// todo: 每种服务注册的方式都要继承这个interface的方法
 	GetServices() []*KVPair
 	WatchService() chan []*KVPair
 	RemoveWatcher(ch chan []*KVPair)
@@ -119,6 +121,8 @@ type xClient struct {
 	isGo bool			// 非go服务端的标识
 	svcTyp   string
 	notGoServers map[string]string			// 非go服务端的地址
+
+	isReverseProxy 		bool
 }
 
 // NewXClient creates a XClient that supports service discovery and service governance.
@@ -177,8 +181,10 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 		} 
 	}
 	*/
-
-	genNotGoSvc(client, servers)
+	genIsReverseProxy(client, servers)
+	if !client.isReverseProxy {			// if reverse proxy, dont need to genNotGo svc nodes
+		genNotGoSvc(client, servers)
+	}
 	
 	if selectMode != Closest && selectMode != SelectByUser {
 		client.selector = newSelector(selectMode, servers)
@@ -197,8 +203,19 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 	return client
 }
 
+// generate the node is reverse proxy or not
+func genIsReverseProxy(client *xClient, servers map[string]string) error {
+	for k := range servers {
+		if strings.Contains("http", k) {
+			client.isReverseProxy = true
+			break
+		}
+	}
+	return nil
+}
+
+// generate the info for not go service
 func genNotGoSvc(client *xClient, servers map[string]string) error {
-	// generate the info for not go service
 	isNotGo := false
 	for _, v := range servers {
 		if strings.Index(v, "typ=py") != -1 {
@@ -735,6 +752,8 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 	var err error
 	//log.Println("xclient SendRow selectClient -------------")
 	// todo: 根据XClient的数据来生成Client，最后的SendRaw逻辑是由Client调用的
+	// todo: c.selecrClient 触发 getCachedClient 函数, 这个函数调用了 client/connection.go 的 Connect 函数,
+	// todo: 客户端建立给服务端的网络连接
 	k, client, err := c.selectClient(ctx, r.ServicePath, r.ServiceMethod, r.Payload)
 	//log.Printf("c.selectClient err ----------", err.(ServiceError), "---", err.Error())
 	log2.ADebug.Print("DEBUG halokid 2 ------ ")
@@ -1181,6 +1200,9 @@ func (c *xClient) GetSvcTyp() string {
 	return c.svcTyp
 }
 
+func (c *xClient) GetReverseProxy() bool {
+	return c.isReverseProxy
+}
 
 
 
