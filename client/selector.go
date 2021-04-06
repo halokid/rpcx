@@ -96,7 +96,7 @@ func (s *roundRobinSelector) Select(ctx context.Context, servicePath, serviceMet
 	i = i % len(ss)		// todo: 当第二次Select的时候 i为1, 则 1 % len(ss) = 1, 则会选择 ss[1]，其他依此类推
 	s.i = i + 1
 
-	return ss[i]		// todo: 第一次 impl Select 则返回 ss[0]
+	return ss[i]		// todo: 第一次选中 Select 则返回 ss[0]
 }
 
 func (s *roundRobinSelector) UpdateServer(servers map[string]string) {

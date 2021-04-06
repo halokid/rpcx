@@ -70,6 +70,7 @@ type XClient interface {
 	GetSvcTyp() string
 
 	GetReverseProxy()	bool
+	SelectNode(ctx context.Context, servicePath, serviceMethod string, args interface{}) string
 }
 
 // KVPair contains a key and a string.
@@ -357,6 +358,12 @@ func (c *xClient) selectClient(ctx context.Context, servicePath, serviceMethod s
 	}
 	client, err := c.getCachedClient(k)
 	return k, client, err
+}
+
+// select a node addr with select stategry
+func (c *xClient) SelectNode(ctx context.Context, servicePath, serviceMethod string, args interface{}) string {
+	node := c.selector.Select(ctx, servicePath, serviceMethod, args)
+	return node
 }
 
 func (c *xClient) getCachedClient(k string) (RPCClient, error) {
