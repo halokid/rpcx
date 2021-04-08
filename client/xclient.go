@@ -207,7 +207,8 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 // generate the node is reverse proxy or not
 func genIsReverseProxy(client *xClient, servers map[string]string) error {
 	for k := range servers {
-		if strings.Contains("http", k) {
+		log2.ADebug.Print("genIsReverseProxy server ------- %+v", k)
+		if strings.Contains(k, "http") {
 			client.isReverseProxy = true
 			break
 		}
