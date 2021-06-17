@@ -165,6 +165,7 @@ func (d *ConsulDiscovery) watch() {
     var c <-chan []*store.KVPair
     var tempDelay time.Duration
 
+    log2.ADebug.Print("实时的consul发现状态 -------- %+v", d)
     retry := d.RetriesAfterWatchFailed
     for d.RetriesAfterWatchFailed < 0 || retry >= 0 {
       log2.ADebug.Print("----------- 执行 go d.watch() -> 执行WatchTree ------------")
@@ -197,6 +198,8 @@ func (d *ConsulDiscovery) watch() {
 
     log2.ADebug.Print("----------- 执行 go d.watch() -> 完成WatchTree ------------")
 
+   // fixme:
+  // todo: 读取节点注册信息的变化， 目前好像只能读取到增加的变化， 不能读取到减少的变化？
   readChanges:
     for {
       select {
@@ -211,8 +214,9 @@ func (d *ConsulDiscovery) watch() {
           break readChanges
         }
         var pairs []*KVPair // latest servers
-        for _, p := range ps {
-          log2.ADebug.Print("watch nodes -------------- %+v, %+v, %+v", p.Key, ": ", string(p.Value))
+        for i, p := range ps {
+          log2.ADebug.Print("观察到新增加的节点 %+v -------------- %+v, 节点key的val为: %+v",
+            i, p.Key, string(p.Value))
           pKeySp := strings.Split(p.Key, "/")
           if len(pKeySp) > 0 && (pKeySp[0]+"/"+pKeySp[1] != d.basePath) {
             continue
@@ -246,8 +250,8 @@ func (d *ConsulDiscovery) watch() {
 
       //todo: 假如两个case的情况都匹配不了，不断的for循环，会造成cpu暴涨300%，所以加上default延迟响应
       // todo: 因为本地保存有服务的缓存信息， 所以就算暂时连接不了consul，更新不了缓存信息，服务也不会有影响
-      default:
-        time.Sleep(3 * time.Second)
+      //default:
+        //time.Sleep(3 * time.Second)
         //return		// todo: 不要加返回，不然就会跳出 watch(), 从而监察不了服务列表的变化了, 默认情况下，更改了服务节点信息， 最慢3秒更新
       }
     }
