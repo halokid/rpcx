@@ -214,8 +214,9 @@ func (d *ConsulDiscovery) watch() {
           break readChanges
         }
         var pairs []*KVPair // latest servers
+        log2.ADebug.Print("WatchTree更新节点数据")
         for i, p := range ps {
-          log2.ADebug.Print("观察到新增加的节点 %+v -------------- %+v, 节点key的val为: %+v",
+          log2.ADebug.Print("节点 %+v -------------- %+v, 节点key的val为: %+v",
             i, p.Key, string(p.Value))
           pKeySp := strings.Split(p.Key, "/")
           if len(pKeySp) > 0 && (pKeySp[0]+"/"+pKeySp[1] != d.basePath) {
