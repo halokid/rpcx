@@ -435,7 +435,8 @@ func (s *Server) serveConn(conn net.Conn) {
 
 			// todo: 在这个方法里会调用序列化配适器来处理数据
 			res, err := s.handleRequest(newCtx, req)   // todo: 这里调用实际的服务方法， 服务和方法的逻辑是在服务端执行的，并返回给客户端
-			log.ADebug.Print("No Heartbeat res: %+v, res.Payload: %+v, err: %+v", res, string(res.Payload[:]), err)
+			//log.ADebug.Print("No Heartbeat res: %+v, res.Payload: %+v, err: %+v", res, string(res.Payload[:]), err)
+			log.ADebug.Print("No Heartbeat res, res.Payload: %+v, err: %+v", string(res.Payload[:]), err)
 
 			if err != nil {
 				log.Warnf("rpcx: failed to handle request: %v", err)
