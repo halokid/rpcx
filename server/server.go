@@ -168,7 +168,11 @@ func (s *Server) getDoneChan() <-chan struct{} {
 }
 
 func (s *Server) startShutdownListener() {
+	// todo: 这里并不是服务停止的时候删除注册信息的逻辑， 目前rpcx的服务停止之后， 会在 consul的 kv 数据里删除服务节点信息是靠 注册的时候设置了 kv数据的超时时间， 然后服务根据超时时间的配置不断循环写入 kv数据，一旦服务停止了， 就会停止这个循环写入， 等kv数据超时之后， consul会自动删除该数据， 所以节点信息就会消失了
+
+	// todo: 这个函数的作用是注册一些 捕获系统信号的处理逻辑， 但是默认是没有注册到任何逻辑封装的
 	// 监听服务端是否shutdown, 假如shutdown则启动stop()， stop()会delete服务注册数据
+	log.ADebug.Print("s.onShutdown捕获系统信号的处理逻辑封装 ---------------- %+v", s.onShutdown)
 	go func(s *Server) {
 		// 捕捉进程终止的信号
 		log.Info("server pid:", os.Getpid())

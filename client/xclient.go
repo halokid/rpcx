@@ -208,6 +208,7 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 func genIsReverseProxy(client *xClient, servers map[string]string) error {
 	for k := range servers {
 		log2.ADebug.Print("genIsReverseProxy server ------- %+v", k)
+		// todo: if the service is http, then reverser proxy the service
 		if strings.Contains(k, "http") {
 			client.isReverseProxy = true
 			break
