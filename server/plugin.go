@@ -133,7 +133,7 @@ func (p *pluginContainer) DoRegister(name string, rcvr interface{}, metadata str
 	var es []error
 	for _, rp := range p.plugins {
 		if plugin, ok := rp.(RegisterPlugin); ok {
-			err := plugin.Register(name, rcvr, metadata)
+			err := plugin.Register(name, rcvr, metadata)	 // todo: 服务真正写入consul的逻辑
 			if err != nil {
 				es = append(es, err)
 			}

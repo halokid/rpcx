@@ -80,7 +80,7 @@ func (s *Server) Register(rcvr interface{}, metadata string) error {
 // RegisterName is like Register but uses the provided name for the type
 // instead of the receiver's concrete type.
 func (s *Server) RegisterName(name string, rcvr interface{}, metadata string) error {
-	s.Plugins.DoRegister(name, rcvr, metadata)
+	s.Plugins.DoRegister(name, rcvr, metadata)		// todo: 服务真正写入consul的逻辑
 	_, err := s.register(rcvr, name, true)
 	return err
 }
