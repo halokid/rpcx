@@ -181,6 +181,7 @@ func (p *ConsulRegisterPlugin) Register(name string, rcvr interface{}, metadata 
 
 	if p.kv == nil {
 		consul.Register()
+		// todo: docker.libkv 是一个注册中心中间件封装组件, 定义kv的类型为consul
 		kv, err := libkv.NewStore(store.CONSUL, p.ConsulServers, nil)
 		if err != nil {
 			log.Errorf("cannot create consul registry: %v", err)
