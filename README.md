@@ -30,9 +30,6 @@ for compatibility, original rpcx code, use the original type to install
 ```shell script
 go get -v -tags "quic kcp ping utp" github.com/halokid/rpcx-plus/... 
 
-# for compatibility forward version code
-mv $GOPATH/github.com/halokid/rpcx-plus $GOPATH/github.com/smallnest/rpcx 
-
 ```
 if you GO111MODULE=on, you can do the same thing in your $GOPATH/pkg folder
 
