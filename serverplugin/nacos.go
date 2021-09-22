@@ -4,12 +4,12 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/halokid/rpcx-plus/log"
+	"github.com/halokid/rpcx-plus/util"
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/clients/naming_client"
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"github.com/halokid/rpcx-plus/log"
-	"github.com/halokid/rpcx-plus/util"
 )
 
 // NacosRegisterPlugin implements consul registry.

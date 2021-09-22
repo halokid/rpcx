@@ -21,11 +21,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/juju/ratelimit"
 	ex "github.com/halokid/rpcx-plus/errors"
 	"github.com/halokid/rpcx-plus/protocol"
 	"github.com/halokid/rpcx-plus/serverplugin"
 	"github.com/halokid/rpcx-plus/share"
+	"github.com/juju/ratelimit"
 	//. "github.com/halokid/ColorfulRabbit"
 
 	"github.com/halokid/ColorfulRabbit"
@@ -229,6 +229,9 @@ func genNotGoSvc(client *xClient, servers map[string]string) error {
 			//break
 		} else if strings.Index(v, "typ=rust") != -1 {
 			client.svcTyp = "rust"
+			isNotGo = true
+		} else if strings.Index(v, "typ=cakeRabbit") != -1 {
+			client.svcTyp = "cakeRabbit"
 			isNotGo = true
 		}
 

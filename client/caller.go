@@ -88,6 +88,9 @@ func (c *caller) invokeWrap(nodeAddr string, svc string, call string, bodyTran m
     b, err = c.invokePy(nodeAddr, svc, call, bodyTran)
   case "rust":
     b, err = c.invokeRust(nodeAddr, svc, call, bodyTran)
+  case "cakeRabbit":
+    b, err = c.invokeCake(nodeAddr, svc, call, bodyTran)
+
   }
 
   return b, err

@@ -1,6 +1,6 @@
 package client
 /*
-implement caller for rust service
+implement caller for rust GRPC service
 */
 
 import (
@@ -13,6 +13,7 @@ import (
   "google.golang.org/grpc"
 )
 
+// call rust grpc service
 func (c *caller) invokeRust(nodeAddr string, svc string, call string, bodyTran map[string]interface{}) ([]byte, error) {
   conn, err := grpc.Dial(nodeAddr, grpc.WithInsecure())
   if err != nil {

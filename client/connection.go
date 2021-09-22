@@ -98,12 +98,15 @@ func newDirectConn(c *Client, network, address string) (net.Conn, error) {
 		//or conn:= tls.Client(netConn, &config)
 		conn = net.Conn(tlsConn)
 	} else {
+		logx.Printf("匹配到 c *Client == nil 或者 c.option.TLSConfig == nil 的情况  ")
+		logx.Printf("c *Client: %+v,  c.option.TLSConfig: %+v", c, c.option.TLSConfig)
 		logx.Printf("net.DialTimeout 建立client和server的连接, timeout: %+v", c.option.ConnectTimeout)
 		conn, err = net.DialTimeout(network, address, c.option.ConnectTimeout)
 	}
 
 	if err != nil {
-		log.Warnf("failed to dial server: %v", err)
+		//log.Warnf("failed to dial server: %v", err)
+		log.Warnf("与服务端通信失败: %v, 服务端为: %+v", err, address)
 		return nil, err
 	}
 
