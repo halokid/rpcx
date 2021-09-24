@@ -12,7 +12,8 @@ service caller
 
 type Caller interface {
   GetSvcTyp()   string
-  Call(notGoServers map[string]string, svc string, call string, bodyTran map[string]interface{}) ([]byte, error)
+  Call(notGoServers map[string]string, svc string, call string,
+    bodyTran map[string]interface{}, psKey []string) ([]byte, error)
 }
 
 type caller struct {
@@ -39,11 +40,11 @@ func (c *caller) GetSvcTyp() string {
   return c.typ
 }
 
-func (c *caller) Call(notGoServers map[string]string, svc string, call string, bodyTran map[string]interface{}) ([]byte, error) {
+func (c *caller) Call(notGoServers map[string]string, svc string, call string, bodyTran map[string]interface{}, psKey []string) ([]byte, error) {
 
   nodeAddr := c.selectNode(notGoServers)
   log.Printf("nodeAddr --------- %+v", nodeAddr)
-  b, err := c.invoke(nodeAddr, svc, call, bodyTran)
+  b, err := c.invoke(nodeAddr, svc, call, bodyTran, psKey)
   return b, err
 }
 
@@ -58,7 +59,8 @@ func (c *caller) selectNode(notGoServers map[string]string) string {
   return nodeAddr
 }
 
-func (c *caller) invoke(nodeAddr string, svc string, call string, bodyTran map[string]interface{}) ([]byte, error) {
+func (c *caller) invoke(nodeAddr string, svc string, call string,
+  bodyTran map[string]interface{}, psKey []string) ([]byte, error) {
 
   switch c.failMode {
 
@@ -69,7 +71,7 @@ func (c *caller) invoke(nodeAddr string, svc string, call string, bodyTran map[s
     for retries >= 0 {
       log.Println("Failtry once---")
       retries--
-      b, err = c.invokeWrap(nodeAddr, svc, call, bodyTran)
+      b, err = c.invokeWrap(nodeAddr, svc, call, bodyTran, psKey)
       if err == nil {
         return b, err
       }
@@ -79,7 +81,7 @@ func (c *caller) invoke(nodeAddr string, svc string, call string, bodyTran map[s
   return []byte{}, nil
 }
 
-func (c *caller) invokeWrap(nodeAddr string, svc string, call string, bodyTran map[string]interface{}) ([]byte, error) {
+func (c *caller) invokeWrap(nodeAddr string, svc string, call string, bodyTran map[string]interface{}, psKey []string) ([]byte, error) {
   var b []byte
   var err error
 
@@ -89,7 +91,7 @@ func (c *caller) invokeWrap(nodeAddr string, svc string, call string, bodyTran m
   case "rust":
     b, err = c.invokeRust(nodeAddr, svc, call, bodyTran)
   case "cakeRabbit":
-    b, err = c.invokeCake(nodeAddr, svc, call, bodyTran)
+    b, err = c.invokeCake(nodeAddr, svc, call, bodyTran, psKey)
 
   }
 
