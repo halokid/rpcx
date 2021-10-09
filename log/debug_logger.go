@@ -1,6 +1,9 @@
 package log
 
-import "log"
+import (
+  "log"
+  "os"
+)
 
 /**
 special code analysis debug print
@@ -13,14 +16,25 @@ type AnalyDebug struct {
 var ADebug *AnalyDebug
 
 func init() {
+  stdout := EnvLogEnable()
   ADebug = &AnalyDebug{
     //Stdout:   true,
-    Stdout:   false,
+    Stdout:   stdout,
   }
+}
+
+func EnvLogEnable() bool {
+  logEnable := os.Getenv("rpcx_plus_debug")
+  log.Println("logEnable ------------", logEnable)
+  if logEnable == "true" {
+    return true
+  }
+  return false
 }
 
 func (a *AnalyDebug) Print(format string, v... interface{}) {
   if a.Stdout {
+  //if EnvLogEnable() {
     //log.Println("len v ---------", len(v))
     if len(v) > 0 {
       log.Printf(format, v...)
