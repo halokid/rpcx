@@ -229,6 +229,9 @@ func (d *ConsulDiscovery) watch() {
           }
           pairs = append(pairs, pair) // 一次loading所有的服务键值对(pairs)
         }
+        // todo: ConsulDiscovery 存了两个有关于node service节点信息的数据， 一个是pairs, 一个是chans
+        // todo: paire是缓存成本地的nodes service数据等用途， chans是removeWatcher（目前还没发现其他作用）用途来的
+        // todo: 获取到的节点数据写入 d.pairs，数据结构是 []*KVPair
         d.pairs = pairs
 
         d.mu.Lock()
@@ -241,6 +244,7 @@ func (d *ConsulDiscovery) watch() {
               }
             }()
             select {
+            // todo: 获取到的节点数据写入 d.chan，数据结构是 []chan []*KVPair
             case ch <- pairs: // todo: d.chans 为指针， 所以 ch <-pairs 是用 pairs的item去赋值给 d.chans的 item
             case <-time.After(time.Minute): // 每一次用pairs填充 d.chans 容量的变化， 最大填充的容量为len(d.chans)
               log.Warn("chan is full and new change has been dropped")
