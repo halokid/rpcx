@@ -421,6 +421,9 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 			//log.Println("getCache 11111111 --------------------------")
 			// todo: client连接到server， 并且把连接句柄写入conn, 这是一个长连接，cache会一直保留这个连接
 			// todo:  Connect函数会触发一个input的gor, go c.input() 这一句， 这个input就是更改 client.pending[seq]， 也就是网络请求连接状态的逻辑，SendRaw 和 call 都是靠这个来改变网络请求的状态
+
+			// todo:  cachedClient有没有必要？cacheClient是一个以 service node的 address为key， client本身为value的 map，意思就是当某一个client要连某个service node 的时候，先在这个cacheCLient取client，这个在cache里面的client已经建立了客户端到服务端的conn， 所以不用再次建立这个conn，提高效率
+			// todo: 关键性能点在于，当client 并发请求某 service node的时候， 这个cacheClient 里的client一直input一直在call service node，这里有一个for循环，不断的处理请求，当并发的时候，要for循环里面有swicth，就是当 协程重复执行 input()， 这个switch逻辑一会一直监听执行， 就是client就不会调用 conn.close()，这样就可以一直用已经建立了conn的client，提高性能， 当并发结束，则跳出switch, 按逻辑执行了 client.conn.close() 关闭客户端到服务端的连接.
 			err := client.Connect(network, addr)
 			log.Printf("完成client.Connect动作, err -------------- %+v", err)
 			if err != nil {
