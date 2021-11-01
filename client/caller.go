@@ -19,7 +19,7 @@ type Caller interface {
 type caller struct {
   typ               string
   selectMode        SelectMode
-  failMode          FailMode
+  failMode          FailMode      // todo: defaul is Failover
   nodeIdx           int
   option            callerOption
 }

@@ -5,8 +5,8 @@ implement caller for cakeRabbit service
 
 import (
   "github.com/halokid/ColorfulRabbit"
-  "github.com/halokid/rpcx-plus/log"
   "github.com/halokid/msgpack-rpc-go/rpc"
+  "github.com/halokid/rpcx-plus/log"
   "github.com/spf13/cast"
   logx "log"
   "net"
@@ -17,7 +17,7 @@ func (c *caller) invokeCake(nodeAddr string, svc string, call string, bodyTran m
   defer conn.Close()
   ColorfulRabbit.CheckError(err, "invoke cakeRabbit service error")
   if err != nil {
-    return []byte{}, err
+    return []byte(`{"msg": "cannot find svc nodes || svc return exception"} code 1`), err
   }
 
   client := rpc.NewSession(conn, true)
@@ -45,7 +45,7 @@ func (c *caller) invokeCake(nodeAddr string, svc string, call string, bodyTran m
   rsp, err := client.Send(call, args...)
   ColorfulRabbit.CheckError(err, "invoke cakeRabbit service call error")
   if err != nil {
-    return []byte{}, err
+    return []byte(`{"msg": "cannot find svc nodes || svc return exception"} code 2}`), err
   }
   log.ADebug.Print("invokeCake rsp -------", rsp)
   rspS := rsp.String()
