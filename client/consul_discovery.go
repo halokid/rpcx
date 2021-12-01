@@ -117,7 +117,9 @@ func NewConsulDiscoveryTemplate(basePath string, consulAddr []string, options *s
 
 // Clone clones this ServiceDiscovery with new servicePath.
 func (d *ConsulDiscovery) Clone(servicePath string) ServiceDiscovery {
-  log2.ADebug.Print("-----@@---- ConsulDiscovery Clone ----@@------ ")
+  log2.ADebug.Print("-----@@---- 触发服务节点发现 go d.watch()的逻辑," +
+  "现在的 d.watch()逻辑是每一个svc就是有一个对应的gor来watch该svc的节点变化，有多少个svc就有多少个这样的gor" +
+  "-- ConsulDiscovery Clone ----@@------ ")
   return NewConsulDiscoveryStore(d.basePath+"/"+servicePath, d.kv)
 }
 
@@ -208,25 +210,25 @@ func (d *ConsulDiscovery) watch() {
         return
 
       case ps := <-c:
-        log2.ADebug.Print("----------- 执行 go d.watch() -> WatchTree -> 监控Tree变化 ------")
+        log2.ADebug.Print("----------- 执行 go d.watch() -> WatchTree -> 监控Tree变化", d.basePath, "------")
         if ps == nil {
           log.Errorf("ps := <-c，读取到 ps == nil，表示注册中心watch读取到为nil，跳出readChanges")
           break readChanges
         }
         var pairs []*KVPair // latest servers
-        log2.ADebug.Print("WatchTree更新节点数据")
+        log2.ADebug.Print("=== WatchTree更新节点数据", d.basePath, "===")
         for i, p := range ps {
-          log2.ADebug.Print("节点 %+v -------------- %+v, 节点key的val为: %+v",
-            i, p.Key, string(p.Value))
           pKeySp := strings.Split(p.Key, "/")
           if len(pKeySp) > 0 && (pKeySp[0]+"/"+pKeySp[1] != d.basePath) {
             continue
           }
           k := strings.TrimPrefix(p.Key, prefix)
           pair := &KVPair{Key: k, Value: string(p.Value)}
-          if d.filter != nil && !d.filter(pair) {
+          if d.filter != nil && !d.filter(pair) {   // todo: 过滤掉一些已经禁止的节点
             continue
           }
+          log2.ADebug.Print("节点 %+v -------------- %+v, 节点key的val为: %+v",
+            i, p.Key, string(p.Value))
           pairs = append(pairs, pair) // 一次loading所有的服务键值对(pairs)
         }
         // todo: ConsulDiscovery 存了两个有关于node service节点信息的数据， 一个是pairs, 一个是chans

@@ -159,7 +159,7 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 
 	// todo: 定义servers， 修复相似服务名bug在这里
 	client.servers = servers
-	log2.ADebug.Print("client.servers --------------- %+v", client.servers)
+	log2.ADebug.Print("NewXClient建立初次获取client.servers --------------- %+v", client.servers)
 	
 	// 检查第一个key属于什么typ
 	//serCk := servers[kCk]
@@ -196,7 +196,7 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 	ch := client.discovery.WatchService()
 	log2.ADebug.Print("观察svc变化 ch ----------- %+v", ch)
 	if ch != nil {
-		log2.ADebug.Print("--@@@----守护监听注册中心svc的变化----@@@--")
+		log2.ADebug.Print("--@@@----守护监听注册中心svc:", servicePath, "的变化----@@@--")
 		client.ch = ch
 		go client.watch(ch)
 	}
@@ -207,7 +207,7 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 // generate the node is reverse proxy or not
 func genIsReverseProxy(client *xClient, servers map[string]string) error {
 	for k := range servers {
-		log2.ADebug.Print("genIsReverseProxy server ------- %+v", k)
+		log2.ADebug.Print("计算是否为反代服务-genIsReverseProxy server ------- %+v", k)
 		// todo: if the service is http, then reverser proxy the service
 		if strings.Contains(k, "http") {
 			client.isReverseProxy = true
