@@ -201,11 +201,15 @@ func (s *Server) Serve(network, address string) (err error) {
 	}
 
 	if network == "http" {
+		// todo: 没用开源的http serv, 直接编排http数据write进network conn
 		s.serveByHTTP(ln, "")
 		return nil
 	}
 
 	// try to start gateway
+	// todo: 这个成功启动后，服务端可同时支持rpc和http， 同一个网络端口，其中http支持有两种
+	// todo: 1. JsonRPC2处理,  2. httprouter路由处理访问
+	logx.Printf("s --- %+v", s)
 	ln = s.startGateway(network, ln)
 	log.ADebug.Print("Server default options 2 ------- %+v", s.options)
 	return s.serveListener(ln)

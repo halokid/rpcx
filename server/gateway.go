@@ -16,6 +16,7 @@ import (
 	"github.com/halokid/rpcx-plus/protocol"
 	"github.com/halokid/rpcx-plus/share"
 	"github.com/soheilhy/cmux"
+	log2 "log"
 )
 
 func (s *Server) startGateway(network string, ln net.Listener) net.Listener {
@@ -29,11 +30,13 @@ func (s *Server) startGateway(network string, ln net.Listener) net.Listener {
 	rpcxLn := m.Match(rpcxPrefixByteMatcher())
 
 	if !s.DisableJSONRPC {
+		log2.Println("=== startJSONRPC2 ===");
 		jsonrpc2Ln := m.Match(cmux.HTTP1HeaderField("X-JSONRPC-2.0", "true"))
 		go s.startJSONRPC2(jsonrpc2Ln)
 	}
 
 	if !s.DisableHTTPGateway {
+		log2.Println("=== startHTTP1APIGateway ===");
 		httpLn := m.Match(cmux.HTTP1Fast())
 		go s.startHTTP1APIGateway(httpLn)
 	}
@@ -91,6 +94,7 @@ func (s *Server) closeHTTP1APIGateway(ctx context.Context) error {
 }
 
 func (s *Server) handleGatewayRequest(w http.ResponseWriter, r *http.Request, params httprouter.Params) {
+	log2.Println("=== handleGatewayRequest ===")
 	ctx := context.WithValue(r.Context(), RemoteConnContextKey, r.RemoteAddr) // notice: It is a string, different with TCP (net.Conn)
 	err := s.Plugins.DoPreReadRequest(ctx)
 	if err != nil {
@@ -193,6 +197,7 @@ func (s *Server) handleGatewayRequest(w http.ResponseWriter, r *http.Request, pa
 		meta.Add(k, v)
 	}
 	wh.Set(XMeta, meta.Encode())
+	log2.Printf("wh ---- %+v", wh);
 	w.Write(res.Payload)
 	s.Plugins.DoPostWriteResponse(newCtx, req, res, err)
 }
