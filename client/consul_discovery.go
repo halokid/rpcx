@@ -139,7 +139,7 @@ func (d *ConsulDiscovery) WatchService() chan []*KVPair {
   defer d.mu.Unlock()
 
   ch := make(chan []*KVPair, 10)
-  d.chans = append(d.chans, ch)
+  d.chans = append(d.chans, ch)   // todo: if d.chans is not nil, it will add to ch, every time add 10 nodes at most.
   return ch
 }
 

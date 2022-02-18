@@ -182,10 +182,15 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 		} 
 	}
 	*/
+
+	// todo: handler here, we separate NotGoSvc(includes py, rust, CakeRabbit) and proxy-service
+	// todo: but after that, we found rust and cake should use http default, so this is the same
+	// todo: as isReverseProxy handle. so remove rust and cake check in genNotGo
 	genIsReverseProxy(client, servers)
 	if !client.isReverseProxy {			// if reverse proxy, dont need to genNotGo svc nodes
 		genNotGoSvc(client, servers)
 	}
+	//client.isReverseProxy = true		// todo: hack code the property to test tracing
 	
 	if selectMode != Closest && selectMode != SelectByUser {
 		client.selector = newSelector(selectMode, servers)
@@ -193,12 +198,15 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 
 	client.Plugins = &pluginContainer{}
 
+	// todo: discovery.WatchService() 返回的 ch 是一个 []*KVPair 指针
 	ch := client.discovery.WatchService()
 	log2.ADebug.Print("观察svc变化 ch ----------- %+v", ch)
 	if ch != nil {
 		log2.ADebug.Print("--@@@----守护监听注册中心svc:", servicePath, "的变化----@@@--")
 		client.ch = ch
-		go client.watch(ch)
+		// todo: here just update the client servers, real watch register nodes data change is in
+		// todo: func NewConsulDiscoveryStore
+		go client.watch(ch)		// todo: client.watch 不断监听  d.chans 的指针句柄, func (d *ConsulDiscovery) watch() 不断监听服务node的改变去更新  d.chans， 形状node数据更新闭环
 	}
 
 	return client
@@ -218,6 +226,9 @@ func genIsReverseProxy(client *xClient, servers map[string]string) error {
 }
 
 // generate the info for not go service
+// todo: this process must the service has the node already, is when the client create, the
+// todo: service has no nodes, after that add the node, the client can not generate the sercvice
+// todo: is Go or not.
 func genNotGoSvc(client *xClient, servers map[string]string) error {
 	isNotGo := false
 	for _, v := range servers {
@@ -227,13 +238,14 @@ func genNotGoSvc(client *xClient, servers map[string]string) error {
 			isNotGo = true
 			//client.notGoServers = servers
 			//break
-		} else if strings.Index(v, "typ=rust") != -1 {
-			client.svcTyp = "rust"
-			isNotGo = true
-		} else if strings.Index(v, "typ=cakeRabbit") != -1 {
-			client.svcTyp = "cakeRabbit"
-			isNotGo = true
 		}
+		//else if strings.Index(v, "typ=rust") != -1 {
+		//	client.svcTyp = "rust"
+		//	isNotGo = true
+		//} else if strings.Index(v, "typ=cakeRabbit") != -1 {
+		//	client.svcTyp = "cakeRabbit"
+		//	isNotGo = true
+		//}
 
 		if isNotGo {
 			client.isGo = false
@@ -310,6 +322,8 @@ func (c *xClient) Auth(auth string) {
 }
 
 // watch changes of service and update cached clients.
+// todo: just update c.servers, not watch register nodes data change here.
+// todo: watch the nodes change, check node is proxy or not, and change the isReverseProxy property
 func (c *xClient) watch(ch chan []*KVPair) {
 	log2.ADebug.Print("len ch --------------- %+v", len(ch))
 	for pairs := range ch {
@@ -326,8 +340,13 @@ func (c *xClient) watch(ch chan []*KVPair) {
 		filterByStateAndGroup(c.option.Group, servers)
 		c.servers = servers
 
+		//isReverseProxyTag := false
 		for k, v := range servers {
 			log2.ADebug.Print("servers k, v ------- %+v, %+v", k, v)
+			if !c.isReverseProxy && checkIsReverseProxy(v) {
+				log.Printf("--- change service [%s] isReverseProxy to true ---", c.servicePath)
+				c.isReverseProxy = true
+			}
 		}
 
 		if c.selector != nil {
@@ -338,6 +357,17 @@ func (c *xClient) watch(ch chan []*KVPair) {
 		log2.ADebug.Print("\n\r")
 	}
 }
+
+func checkIsReverseProxy(val string) bool {
+	matches := []string{"typ=java", "typ=cakeRabbit", "typ=rust"}
+	for _, m := range matches {
+		if strings.Contains(val, m) {
+			return true
+		}
+	}
+	return false
+}
+
 func filterByStateAndGroup(group string, servers map[string]string) {
 	for k, v := range servers {
 		if values, err := url.ParseQuery(v); err == nil {

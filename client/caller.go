@@ -89,8 +89,10 @@ func (c *caller) invokeWrap(nodeAddr string, svc string, call string, bodyTran m
   case "py":
     b, err = c.invokePy(nodeAddr, svc, call, bodyTran)
   case "rust":
+    // todo: deprecated, use http for rust service default
     b, err = c.invokeRust(nodeAddr, svc, call, bodyTran)
   case "cakeRabbit":
+    // todo: deprecated, use http for CakeRabbit service default
     b, err = c.invokeCake(nodeAddr, svc, call, bodyTran, psKey)
 
   }
