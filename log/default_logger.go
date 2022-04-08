@@ -13,35 +13,53 @@ type defaultLogger struct {
 }
 
 func (l *defaultLogger) Debug(v ...interface{}) {
-	l.Output(calldepth, header("DEBUG", fmt.Sprint(v...)))
+	//l.Output(calldepth, header("DEBUG", fmt.Sprint(v...)))
+	if CheckLogLevel(DebugLevel) {
+		l.Output(calldepth, header(color.CyanString("DEBUG "), fmt.Sprint(v...)))
+	}
 }
 
 func (l *defaultLogger) Debugf(format string, v ...interface{}) {
-	l.Output(calldepth, header("DEBUG", fmt.Sprintf(format, v...)))
+	//l.Output(calldepth, header("DEBUG", fmt.Sprintf(format, v...)))
+	if CheckLogLevel(DebugLevel) {
+		l.Output(calldepth, header(color.CyanString("DEBUG "), fmt.Sprintf(format, v...)))
+	}
 }
 
 func (l *defaultLogger) Info(v ...interface{}) {
-	l.Output(calldepth, header(color.GreenString("INFO "), fmt.Sprint(v...)))
+	if CheckLogLevel(InfoLevel) {
+		l.Output(calldepth, header(color.GreenString("INFO "), fmt.Sprint(v...)))
+	}
 }
 
 func (l *defaultLogger) Infof(format string, v ...interface{}) {
-	l.Output(calldepth, header(color.GreenString("INFO "), fmt.Sprintf(format, v...)))
+	if CheckLogLevel(InfoLevel) {
+		l.Output(calldepth, header(color.GreenString("INFO "), fmt.Sprintf(format, v...)))
+	}
 }
 
 func (l *defaultLogger) Warn(v ...interface{}) {
-	l.Output(calldepth, header(color.YellowString("WARN "), fmt.Sprint(v...)))
+	if CheckLogLevel(WarnLevel) {
+		l.Output(calldepth, header(color.YellowString("WARN "), fmt.Sprint(v...)))
+	}
 }
 
 func (l *defaultLogger) Warnf(format string, v ...interface{}) {
-	l.Output(calldepth, header(color.YellowString("WARN "), fmt.Sprintf(format, v...)))
+	if CheckLogLevel(WarnLevel) {
+		l.Output(calldepth, header(color.YellowString("WARN "), fmt.Sprintf(format, v...)))
+	}
 }
 
 func (l *defaultLogger) Error(v ...interface{}) {
-	l.Output(calldepth, header(color.RedString("ERROR"), fmt.Sprint(v...)))
+	if CheckLogLevel(ErrorLevel) {
+		l.Output(calldepth, header(color.RedString("ERROR"), fmt.Sprint(v...)))
+	}
 }
 
 func (l *defaultLogger) Errorf(format string, v ...interface{}) {
-	l.Output(calldepth, header(color.RedString("ERROR"), fmt.Sprintf(format, v...)))
+	if CheckLogLevel(ErrorLevel) {
+		l.Output(calldepth, header(color.RedString("ERROR"), fmt.Sprintf(format, v...)))
+	}
 }
 
 func (l *defaultLogger) Fatal(v ...interface{}) {

@@ -1,14 +1,15 @@
 package log
 
+// todo: discard!!!
+
+///**
 import (
   "log"
   "os"
   "sync"
 )
 
-/**
-special code analysis debug print
- */
+// special code analysis debug print
 
 type AnalyDebug struct {
   Stdout bool
@@ -25,7 +26,7 @@ func init() {
 }
 
 func EnvLogEnable() bool {
-  logEnable := os.Getenv("rpcx_plus_debug")
+  logEnable := os.Getenv("RPCX_PLUS_LOG")
   log.Println("logEnable ------------", logEnable)
   if logEnable == "true" {
     return true
@@ -50,10 +51,18 @@ func (a *AnalyDebug) Print(format string, v ...interface{}) {
 }
 
 func (a *AnalyDebug) PrintErr(format string, v ...interface{}) {
+  mutex := sync.RWMutex{}
+  mutex.Lock()
   if len(v) > 0 {
     log.Printf(format, v...)
   } else {
     log.Print(format)
   }
+  mutex.Unlock()
   log.Println()
 }
+//*/
+
+
+
+
