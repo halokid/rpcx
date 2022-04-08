@@ -3,6 +3,7 @@ package log
 import (
   "log"
   "os"
+  "sync"
 )
 
 /**
@@ -10,7 +11,7 @@ special code analysis debug print
  */
 
 type AnalyDebug struct {
-  Stdout      bool
+  Stdout bool
 }
 
 var ADebug *AnalyDebug
@@ -19,7 +20,7 @@ func init() {
   stdout := EnvLogEnable()
   ADebug = &AnalyDebug{
     //Stdout:   true,
-    Stdout:   stdout,
+    Stdout: stdout,
   }
 }
 
@@ -32,20 +33,23 @@ func EnvLogEnable() bool {
   return false
 }
 
-func (a *AnalyDebug) Print(format string, v... interface{}) {
+func (a *AnalyDebug) Print(format string, v ...interface{}) {
   if a.Stdout {
-  //if EnvLogEnable() {
+    //if EnvLogEnable() {
     //log.Println("len v ---------", len(v))
+    mutex := sync.RWMutex{}
+    mutex.Lock()
     if len(v) > 0 {
       log.Printf(format, v...)
     } else {
       log.Print(format)
     }
+    mutex.Unlock()
     log.Println()
   }
 }
 
-func (a *AnalyDebug) PrintErr(format string, v... interface{}) {
+func (a *AnalyDebug) PrintErr(format string, v ...interface{}) {
   if len(v) > 0 {
     log.Printf(format, v...)
   } else {
@@ -53,5 +57,3 @@ func (a *AnalyDebug) PrintErr(format string, v... interface{}) {
   }
   log.Println()
 }
-
-
