@@ -7,7 +7,7 @@ import (
 
 	"github.com/docker/libkv"
 	"github.com/docker/libkv/store"
-	"github.com/halokid/rpcx-plus/log"
+	logs "github.com/halokid/rpcx-plus/log"
 	etcd "github.com/smallnest/libkv-etcdv3-store"
 )
 
@@ -36,7 +36,7 @@ type EtcdV3Discovery struct {
 func NewEtcdV3Discovery(basePath string, servicePath string, etcdAddr []string, options *store.Config) ServiceDiscovery {
 	kv, err := libkv.NewStore(etcd.ETCDV3, etcdAddr, options)
 	if err != nil {
-		log.Infof("cannot create store: %v", err)
+		logs.Debugf("cannot create store: %v", err)
 		panic(err)
 	}
 
@@ -54,7 +54,7 @@ func NewEtcdV3DiscoveryStore(basePath string, kv store.Store) ServiceDiscovery {
 
 	ps, err := kv.List(basePath)
 	if err != nil {
-		log.Errorf("cannot get services of from registry: %v, err: %v", basePath, err)
+		logs.Errorf("cannot get services of from registry: %v, err: %v", basePath, err)
 		panic(err)
 	}
 	var pairs = make([]*KVPair, 0, len(ps))
@@ -100,7 +100,7 @@ func NewEtcdV3DiscoveryTemplate(basePath string, etcdAddr []string, options *sto
 
 	kv, err := libkv.NewStore(etcd.ETCDV3, etcdAddr, options)
 	if err != nil {
-		log.Infof("cannot create store: %v", err)
+		logs.Debugf("cannot create store: %v", err)
 		panic(err)
 	}
 
@@ -169,7 +169,7 @@ func (d *EtcdV3Discovery) watch() {
 				if max := 30 * time.Second; tempDelay > max {
 					tempDelay = max
 				}
-				log.Warnf("can not watchtree (with retry %d, sleep %v): %s: %v", retry, tempDelay, d.basePath, err)
+				logs.Warnf("can not watchtree (with retry %d, sleep %v): %s: %v", retry, tempDelay, d.basePath, err)
 				time.Sleep(tempDelay)
 				continue
 			}
@@ -177,7 +177,7 @@ func (d *EtcdV3Discovery) watch() {
 		}
 
 		if err != nil {
-			log.Errorf("can't watch %s: %v", d.basePath, err)
+			logs.Errorf("can't watch %s: %v", d.basePath, err)
 			return
 		}
 
@@ -185,7 +185,7 @@ func (d *EtcdV3Discovery) watch() {
 		for {
 			select {
 			case <-d.stopCh:
-				log.Info("discovery has been closed")
+				logs.Debug("discovery has been closed")
 				return
 			case ps := <-c:
 				if ps == nil {
@@ -235,7 +235,7 @@ func (d *EtcdV3Discovery) watch() {
 						select {
 						case ch <- pairs:
 						case <-time.After(time.Minute):
-							log.Warn("chan is full and new change has been dropped")
+							logs.Warn("chan is full and new change has been dropped")
 						}
 					}()
 				}
@@ -243,7 +243,7 @@ func (d *EtcdV3Discovery) watch() {
 			}
 		}
 
-		log.Warn("chan is closed and will rewatch")
+		logs.Warn("chan is closed and will rewatch")
 	}
 }
 

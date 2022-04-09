@@ -2,12 +2,13 @@ package serverplugin
 
 import (
 	"fmt"
-	"log"
 	uurl "net/url"
 	"time"
 
 	client "github.com/influxdata/influxdb1-client"
 	"github.com/rcrowley/go-metrics"
+
+	logs "github.com/halokid/rpcx-plus/log"
 )
 
 type reporter struct {
@@ -32,7 +33,7 @@ func InfluxDB(r metrics.Registry, d time.Duration, url, database, username, pass
 func InfluxDBWithTags(r metrics.Registry, d time.Duration, url, database, username, password string, tags map[string]string) {
 	u, err := uurl.Parse(url)
 	if err != nil {
-		log.Printf("unable to parse InfluxDB url %s. err=%v", url, err)
+		logs.Debug("unable to parse InfluxDB url %s. err=%v", url, err)
 		return
 	}
 
@@ -46,7 +47,7 @@ func InfluxDBWithTags(r metrics.Registry, d time.Duration, url, database, userna
 		tags:     tags,
 	}
 	if err := rep.makeClient(); err != nil {
-		log.Printf("unable to make InfluxDB client. err=%v", err)
+		logs.Debug("unable to make InfluxDB client. err=%v", err)
 		return
 	}
 
@@ -71,15 +72,15 @@ func (r *reporter) run() {
 		select {
 		case <-intervalTicker:
 			if err := r.send(); err != nil {
-				log.Printf("unable to send metrics to InfluxDB. err=%v", err)
+				logs.Debug("unable to send metrics to InfluxDB. err=%v", err)
 			}
 		case <-pingTicker:
 			_, _, err := r.client.Ping()
 			if err != nil {
-				log.Printf("got error while sending a ping to InfluxDB, trying to recreate client. err=%v", err)
+				logs.Debug("got error while sending a ping to InfluxDB, trying to recreate client. err=%v", err)
 
 				if err = r.makeClient(); err != nil {
-					log.Printf("unable to make InfluxDB client. err=%v", err)
+					logs.Debug("unable to make InfluxDB client. err=%v", err)
 				}
 			}
 		}

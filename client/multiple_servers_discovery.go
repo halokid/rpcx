@@ -4,7 +4,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/halokid/rpcx-plus/log"
+	logs "github.com/halokid/rpcx-plus/log"
 )
 
 // MultipleServersDiscovery is a multiple servers service discovery.
@@ -80,7 +80,7 @@ func (d *MultipleServersDiscovery) Update(pairs []*KVPair) {
 			select {
 			case ch <- pairs:
 			case <-time.After(time.Minute):
-				log.Warn("chan is full and new change has been dropped")
+				logs.Warn("chan is full and new change has been dropped")
 			}
 		}()
 	}

@@ -90,7 +90,7 @@ func (p *MetricsPlugin) PostWriteResponse(ctx context.Context, req *protocol.Mes
 
 // Log reports metrics into logs.
 //
-// p.Log( 5 * time.Second, log.New(os.Stderr, "metrics: ", log.Lmicroseconds))
+// p.Log( 5 * time.Second, logs.New(os.Stderr, "metrics: ", logs.Lmicroseconds))
 //
 func (p *MetricsPlugin) Log(freq time.Duration, l metrics.Logger) {
 	go metrics.Log(p.Registry, freq, l)

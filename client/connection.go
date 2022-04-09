@@ -9,10 +9,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/halokid/rpcx-plus/log"
+	logs "github.com/halokid/rpcx-plus/log"
 	"github.com/halokid/rpcx-plus/share"
-
-	logx "log"
 )
 
 type ConnFactoryFn func(c *Client, network, address string) (net.Conn, error)
@@ -37,7 +35,7 @@ func (c *Client) Connect(network, address string) error {
 	case "quic":
 		conn, err = newDirectQuicConn(c, network, address)
 	case "unix":
-		logx.Println("unix case ---------------")
+		logs.Debug("unix case ---------------")
 		conn, err = newDirectConn(c, network, address)
 	default:
 		//logx.Println("default case ---------------")
@@ -67,7 +65,7 @@ func (c *Client) Connect(network, address string) error {
 		c.Conn = conn
 		// todo: 这里是读取服务端返回数据的关键， c.r = bufio.NewReaderSize(conn, ReaderBuffsize)这样定义是表示从 conn 的返回之后获取数据, 这样的话在 server.go 的 serverConn 函数里面的 conn.Write(data) 就是直接把返回的数据写入这个 conn， 所以成功写入返回数据之后， c.r 的数据就会改变了，然后	input函数一直在一个gor运行， 就会不断读取这个 c.r， 读取到之后， 就会赋值给 call.Reply， 返回给客户端了
 		c.r = bufio.NewReaderSize(conn, ReaderBuffsize)
-		//log.Debugf("len: client.r 1 ---------------------  %+v", c.r)
+		//logs.Debugf("len: client.r 1 ---------------------  %+v", c.r)
 		//c.w = bufio.NewWriterSize(conn, WriterBuffsize)
 
 		// start reading and writing since connected
@@ -93,20 +91,20 @@ func newDirectConn(c *Client, network, address string) (net.Conn, error) {
 		dialer := &net.Dialer{
 			Timeout: c.option.ConnectTimeout,
 		}
-		logx.Printf("tls.DialWithDialer 建立client 和 server的连接")
+		logs.Debug("tls.DialWithDialer 建立client 和 server的连接")
 		tlsConn, err = tls.DialWithDialer(dialer, network, address, c.option.TLSConfig)
 		//or conn:= tls.Client(netConn, &config)
 		conn = net.Conn(tlsConn)
 	} else {
-		logx.Printf("匹配到 c *Client == nil 或者 c.option.TLSConfig == nil 的情况  ")
-		logx.Printf("c *Client: %+v,  c.option.TLSConfig: %+v", c, c.option.TLSConfig)
-		logx.Printf("net.DialTimeout 建立client和server的连接, timeout: %+v", c.option.ConnectTimeout)
+		logs.Debug("匹配到 c *Client == nil 或者 c.option.TLSConfig == nil 的情况  ")
+		logs.Debug("c *Client: %+v,  c.option.TLSConfig: %+v", c, c.option.TLSConfig)
+		logs.Debug("net.DialTimeout 建立client和server的连接, timeout: %+v", c.option.ConnectTimeout)
 		conn, err = net.DialTimeout(network, address, c.option.ConnectTimeout)
 	}
 
 	if err != nil {
-		//log.Warnf("failed to dial server: %v", err)
-		log.Warnf("与服务端通信失败: %v, 服务端为: %+v", err, address)
+		//logs.Warnf("failed to dial server: %v", err)
+		logs.Warnf("与服务端通信失败: %v, 服务端为: %+v", err, address)
 		return nil, err
 	}
 
@@ -142,7 +140,7 @@ func newDirectHTTPConn(c *Client, network, address string) (net.Conn, error) {
 		conn, err = net.DialTimeout("tcp", address, c.option.ConnectTimeout)
 	}
 	if err != nil {
-		log.Errorf("failed to dial server: %v", err)
+		logs.Errorf("failed to dial server: %v", err)
 		return nil, err
 	}
 
@@ -155,7 +153,7 @@ func newDirectHTTPConn(c *Client, network, address string) (net.Conn, error) {
 		return conn, nil
 	}
 	if err == nil {
-		log.Errorf("unexpected HTTP response: %v", err)
+		logs.Errorf("unexpected HTTP response: %v", err)
 		err = errors.New("unexpected HTTP response: " + resp.Status)
 	}
 	conn.Close()

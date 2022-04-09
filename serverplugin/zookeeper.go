@@ -14,8 +14,8 @@ import (
 	"github.com/docker/libkv/store/zookeeper"
 
 	"github.com/docker/libkv/store"
+	logs "github.com/halokid/rpcx-plus/log"
 	metrics "github.com/rcrowley/go-metrics"
-	"github.com/halokid/rpcx-plus/log"
 )
 
 func init() {
@@ -56,7 +56,7 @@ func (p *ZooKeeperRegisterPlugin) Start() error {
 	if p.kv == nil {
 		kv, err := libkv.NewStore(store.ZK, p.ZooKeeperServers, p.Options)
 		if err != nil {
-			log.Errorf("cannot create zk registry: %v", err)
+			logs.Errorf("cannot create zk registry: %v", err)
 			return err
 		}
 		p.kv = kv
@@ -68,7 +68,7 @@ func (p *ZooKeeperRegisterPlugin) Start() error {
 
 	err := p.kv.Put(p.BasePath, []byte("rpcx_path"), &store.WriteOptions{IsDir: true})
 	if err != nil {
-		log.Errorf("cannot create zk path %s: %v", p.BasePath, err)
+		logs.Errorf("cannot create zk path %s: %v", p.BasePath, err)
 		return err
 	}
 
@@ -94,7 +94,7 @@ func (p *ZooKeeperRegisterPlugin) Start() error {
 						nodePath := fmt.Sprintf("%s/%s/%s", p.BasePath, name, p.ServiceAddress)
 						kvPaire, err := p.kv.Get(nodePath)
 						if err != nil {
-							log.Infof("can't get data of node: %s, because of %v", nodePath, err.Error())
+							logs.Debugf("can't get data of node: %s, because of %v", nodePath, err.Error())
 
 							p.metasLock.RLock()
 							meta := p.metas[name]
@@ -102,7 +102,7 @@ func (p *ZooKeeperRegisterPlugin) Start() error {
 
 							err = p.kv.Put(nodePath, []byte(meta), &store.WriteOptions{TTL: p.UpdateInterval * 3})
 							if err != nil {
-								log.Errorf("cannot re-create zookeeper path %s: %v", nodePath, err)
+								logs.Errorf("cannot re-create zookeeper path %s: %v", nodePath, err)
 							}
 						} else {
 							v, _ := url.ParseQuery(string(kvPaire.Value))
@@ -126,7 +126,7 @@ func (p *ZooKeeperRegisterPlugin) Stop() error {
 	if p.kv == nil {
 		kv, err := libkv.NewStore(store.ZK, p.ZooKeeperServers, p.Options)
 		if err != nil {
-			log.Errorf("cannot create zk registry: %v", err)
+			logs.Errorf("cannot create zk registry: %v", err)
 			return err
 		}
 		p.kv = kv
@@ -140,12 +140,12 @@ func (p *ZooKeeperRegisterPlugin) Stop() error {
 		nodePath := fmt.Sprintf("%s/%s/%s", p.BasePath, name, p.ServiceAddress)
 		exist, err := p.kv.Exists(nodePath)
 		if err != nil {
-			log.Errorf("cannot delete zk path %s: %v", nodePath, err)
+			logs.Errorf("cannot delete zk path %s: %v", nodePath, err)
 			continue
 		}
 		if exist {
 			p.kv.Delete(nodePath)
-			log.Infof("delete zk path %s", nodePath, err)
+			logs.Infof("delete zk path %s", nodePath, err)
 		}
 	}
 
@@ -173,7 +173,7 @@ func (p *ZooKeeperRegisterPlugin) Register(name string, rcvr interface{}, metada
 		zookeeper.Register()
 		kv, err := libkv.NewStore(store.ZK, p.ZooKeeperServers, nil)
 		if err != nil {
-			log.Errorf("cannot create zk registry: %v", err)
+			logs.Errorf("cannot create zk registry: %v", err)
 			return err
 		}
 		p.kv = kv
@@ -184,21 +184,21 @@ func (p *ZooKeeperRegisterPlugin) Register(name string, rcvr interface{}, metada
 	}
 	err = p.kv.Put(p.BasePath, []byte("rpcx_path"), &store.WriteOptions{IsDir: true})
 	if err != nil {
-		log.Errorf("cannot create zk path %s: %v", p.BasePath, err)
+		logs.Errorf("cannot create zk path %s: %v", p.BasePath, err)
 		return err
 	}
 
 	nodePath := fmt.Sprintf("%s/%s", p.BasePath, name)
 	err = p.kv.Put(nodePath, []byte(name), &store.WriteOptions{IsDir: true})
 	if err != nil {
-		log.Errorf("cannot create zk path %s: %v", nodePath, err)
+		logs.Errorf("cannot create zk path %s: %v", nodePath, err)
 		return err
 	}
 
 	nodePath = fmt.Sprintf("%s/%s/%s", p.BasePath, name, p.ServiceAddress)
 	err = p.kv.Put(nodePath, []byte(metadata), &store.WriteOptions{TTL: p.UpdateInterval * 2})
 	if err != nil {
-		log.Errorf("cannot create zk path %s: %v", nodePath, err)
+		logs.Errorf("cannot create zk path %s: %v", nodePath, err)
 		return err
 	}
 
@@ -226,7 +226,7 @@ func (p *ZooKeeperRegisterPlugin) Unregister(name string) (err error) {
 		zookeeper.Register()
 		kv, err := libkv.NewStore(store.ZK, p.ZooKeeperServers, nil)
 		if err != nil {
-			log.Errorf("cannot create zk registry: %v", err)
+			logs.Errorf("cannot create zk registry: %v", err)
 			return err
 		}
 		p.kv = kv
@@ -237,14 +237,14 @@ func (p *ZooKeeperRegisterPlugin) Unregister(name string) (err error) {
 	}
 	err = p.kv.Put(p.BasePath, []byte("rpcx_path"), &store.WriteOptions{IsDir: true})
 	if err != nil {
-		log.Errorf("cannot create zk path %s: %v", p.BasePath, err)
+		logs.Errorf("cannot create zk path %s: %v", p.BasePath, err)
 		return err
 	}
 
 	nodePath := fmt.Sprintf("%s/%s", p.BasePath, name)
 	err = p.kv.Put(nodePath, []byte(name), &store.WriteOptions{IsDir: true})
 	if err != nil {
-		log.Errorf("cannot create zk path %s: %v", nodePath, err)
+		logs.Errorf("cannot create zk path %s: %v", nodePath, err)
 		return err
 	}
 
@@ -252,7 +252,7 @@ func (p *ZooKeeperRegisterPlugin) Unregister(name string) (err error) {
 
 	err = p.kv.Delete(nodePath)
 	if err != nil {
-		log.Errorf("cannot create consul path %s: %v", nodePath, err)
+		logs.Errorf("cannot create consul path %s: %v", nodePath, err)
 		return err
 	}
 

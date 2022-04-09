@@ -4,12 +4,12 @@ import (
 	"context"
 	"net"
 
-	opentracing "github.com/opentracing/opentracing-go"
-	"github.com/opentracing/opentracing-go/ext"
-	"github.com/opentracing/opentracing-go/log"
 	"github.com/halokid/rpcx-plus/protocol"
 	"github.com/halokid/rpcx-plus/server"
 	"github.com/halokid/rpcx-plus/share"
+	opentracing "github.com/opentracing/opentracing-go"
+	"github.com/opentracing/opentracing-go/ext"
+	logs "github.com/opentracing/opentracing-go/log"
 )
 
 type OpenTracingPlugin struct{}
@@ -19,7 +19,7 @@ func (p OpenTracingPlugin) Register(name string, rcvr interface{}, metadata stri
 		"rpcx.Register")
 	defer span1.Finish()
 
-	span1.LogFields(log.String("register_service", name))
+	span1.LogFields(logs.String("register_service", name))
 
 	return nil
 }
@@ -29,7 +29,7 @@ func (p OpenTracingPlugin) RegisterFunction(serviceName, fname string, fn interf
 		"rpcx.RegisterFunction")
 	defer span1.Finish()
 
-	span1.LogFields(log.String("register_function", serviceName+"."+fname))
+	span1.LogFields(logs.String("register_function", serviceName+"."+fname))
 	return nil
 }
 
@@ -38,7 +38,7 @@ func (p OpenTracingPlugin) PostConnAccept(conn net.Conn) (net.Conn, bool) {
 		"rpcx.AcceptConn")
 	defer span1.Finish()
 
-	span1.LogFields(log.String("remote_addr", conn.RemoteAddr().String()))
+	span1.LogFields(logs.String("remote_addr", conn.RemoteAddr().String()))
 	return conn, true
 }
 
@@ -52,7 +52,7 @@ func (p OpenTracingPlugin) PreHandleRequest(ctx context.Context, r *protocol.Mes
 		ext.RPCServerOption(wireContext))
 
 	clientConn := ctx.Value(server.RemoteConnContextKey).(net.Conn)
-	span1.LogFields(log.String("remote_addr", clientConn.RemoteAddr().Network()))
+	span1.LogFields(logs.String("remote_addr", clientConn.RemoteAddr().Network()))
 
 	if rpcxContext, ok := ctx.(*share.Context); ok {
 		rpcxContext.SetValue(share.OpentracingSpanServerKey, span1)

@@ -8,7 +8,7 @@ import (
 	"github.com/docker/libkv"
 	"github.com/docker/libkv/store"
 	"github.com/docker/libkv/store/zookeeper"
-	"github.com/halokid/rpcx-plus/log"
+	logs "github.com/halokid/rpcx-plus/log"
 )
 
 func init() {
@@ -44,7 +44,7 @@ func NewZookeeperDiscovery(basePath string, servicePath string, zkAddr []string,
 
 	kv, err := libkv.NewStore(store.ZK, zkAddr, options)
 	if err != nil {
-		log.Infof("cannot create store: %v", err)
+		logs.Debugf("cannot create store: %v", err)
 		panic(err)
 	}
 
@@ -61,7 +61,7 @@ func NewZookeeperDiscoveryWithStore(basePath string, kv store.Store) ServiceDisc
 
 	ps, err := kv.List(basePath)
 	if err != nil {
-		log.Infof("cannot get services of %s from registry: %v, err: %v", basePath, err)
+		logs.Debugf("cannot get services of %s from registry: %v, err: %v", basePath, err)
 		panic(err)
 	}
 
@@ -92,7 +92,7 @@ func NewZookeeperDiscoveryTemplate(basePath string, zkAddr []string, options *st
 
 	kv, err := libkv.NewStore(store.ZK, zkAddr, options)
 	if err != nil {
-		log.Infof("cannot create store: %v", err)
+		logs.Debugf("cannot create store: %v", err)
 		panic(err)
 	}
 
@@ -161,7 +161,7 @@ func (d *ZookeeperDiscovery) watch() {
 				if max := 30 * time.Second; tempDelay > max {
 					tempDelay = max
 				}
-				log.Warnf("can not watchtree (with retry %d, sleep %v): %s: %v", retry, tempDelay, d.basePath, err)
+				logs.Warnf("can not watchtree (with retry %d, sleep %v): %s: %v", retry, tempDelay, d.basePath, err)
 				time.Sleep(tempDelay)
 				continue
 			}
@@ -169,19 +169,19 @@ func (d *ZookeeperDiscovery) watch() {
 		}
 
 		if err != nil {
-			log.Errorf("can't watch %s: %v", d.basePath, err)
+			logs.Errorf("can't watch %s: %v", d.basePath, err)
 			return
 		}
 
 		if err != nil {
-			log.Fatalf("can not watchtree: %s: %v", d.basePath, err)
+			logs.Fatalf("can not watchtree: %s: %v", d.basePath, err)
 		}
 
 	readChanges:
 		for {
 			select {
 			case <-d.stopCh:
-				log.Info("discovery has been closed")
+				logs.Debug("discovery has been closed")
 				return
 			case ps := <-c:
 				if ps == nil {
@@ -209,7 +209,7 @@ func (d *ZookeeperDiscovery) watch() {
 						select {
 						case ch <- pairs:
 						case <-time.After(time.Minute):
-							log.Warn("chan is full and new change has been dropped")
+							logs.Warn("chan is full and new change has been dropped")
 						}
 					}()
 				}
@@ -217,7 +217,7 @@ func (d *ZookeeperDiscovery) watch() {
 			}
 		}
 
-		log.Warn("chan is closed and will rewatch")
+		logs.Warn("chan is closed and will rewatch")
 	}
 }
 

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/grandcat/zeroconf"
-	"github.com/halokid/rpcx-plus/log"
+	logs "github.com/halokid/rpcx-plus/log"
 )
 
 type serviceMeta struct {
@@ -46,7 +46,7 @@ func NewMDNSDiscovery(service string, timeout time.Duration, watchInterval time.
 	var err error
 	d.pairs, err = d.browse()
 	if err != nil {
-		log.Warnf("failed to browse services: %v", err)
+		logs.Warnf("failed to browse services: %v", err)
 	}
 	go d.watch()
 	return d
@@ -108,7 +108,7 @@ func (d *MDNSDiscovery) watch() {
 		select {
 		case <-d.stopCh:
 			t.Stop()
-			log.Info("discovery has been closed")
+			logs.Info("discovery has been closed")
 			return
 		case <-t.C:
 			pairs, err := d.browse()
@@ -127,7 +127,7 @@ func (d *MDNSDiscovery) watch() {
 						select {
 						case ch <- pairs:
 						case <-time.After(time.Minute):
-							log.Warn("chan is full and new change has ben dropped")
+							logs.Warn("chan is full and new change has ben dropped")
 						}
 					}()
 				}
@@ -140,7 +140,7 @@ func (d *MDNSDiscovery) watch() {
 func (d *MDNSDiscovery) browse() ([]*KVPair, error) {
 	resolver, err := zeroconf.NewResolver(nil)
 	if err != nil {
-		log.Warnf("Failed to initialize resolver: %v", err)
+		logs.Warnf("Failed to initialize resolver: %v", err)
 		return nil, err
 	}
 	entries := make(chan *zeroconf.ServiceEntry)
@@ -154,7 +154,7 @@ func (d *MDNSDiscovery) browse() ([]*KVPair, error) {
 			s, _ := url.QueryUnescape(entry.Text[0])
 			err := json.Unmarshal([]byte(s), &services)
 			if err != nil {
-				log.Warnf("Failed to browse: %v", err)
+				logs.Warnf("Failed to browse: %v", err)
 				continue
 			}
 
@@ -178,7 +178,7 @@ func (d *MDNSDiscovery) browse() ([]*KVPair, error) {
 	defer cancel()
 	err = resolver.Browse(ctx, "_rpcxservices", d.domain, entries)
 	if err != nil {
-		log.Warnf("Failed to browse: %v", err)
+		logs.Warnf("Failed to browse: %v", err)
 	}
 
 	<-done

@@ -12,8 +12,8 @@ import (
 
 	"github.com/abronan/valkeyrie"
 	"github.com/abronan/valkeyrie/store"
-	metrics "github.com/rcrowley/go-metrics"
-	"github.com/halokid/rpcx-plus/log"
+	logs "github.com/halokid/rpcx-plus/log"
+	"github.com/rcrowley/go-metrics"
 	"github.com/smallnest/valkeyrie/store/redis"
 )
 
@@ -55,7 +55,7 @@ func (p *RedisRegisterPlugin) Start() error {
 	if p.kv == nil {
 		kv, err := valkeyrie.NewStore(store.REDIS, p.RedisServers, p.Options)
 		if err != nil {
-			log.Errorf("cannot create redis registry: %v", err)
+			logs.Errorf("cannot create redis registry: %v", err)
 			return err
 		}
 		p.kv = kv
@@ -63,7 +63,7 @@ func (p *RedisRegisterPlugin) Start() error {
 
 	err := p.kv.Put(p.BasePath, []byte("rpcx_path"), &store.WriteOptions{IsDir: true})
 	if err != nil && !strings.Contains(err.Error(), "Not a file") {
-		log.Errorf("cannot create redis path %s: %v", p.BasePath, err)
+		logs.Errorf("cannot create redis path %s: %v", p.BasePath, err)
 		return err
 	}
 
@@ -89,7 +89,7 @@ func (p *RedisRegisterPlugin) Start() error {
 						nodePath := fmt.Sprintf("%s/%s/%s", p.BasePath, name, p.ServiceAddress)
 						kvPair, err := p.kv.Get(nodePath, nil)
 						if err != nil {
-							log.Infof("can't get data of node: %s, because of %v", nodePath, err.Error())
+							logs.Debugf("can't get data of node: %s, because of %v", nodePath, err.Error())
 
 							p.metasLock.RLock()
 							meta := p.metas[name]
@@ -97,7 +97,7 @@ func (p *RedisRegisterPlugin) Start() error {
 
 							err = p.kv.Put(nodePath, []byte(meta), &store.WriteOptions{TTL: p.UpdateInterval * 3})
 							if err != nil {
-								log.Errorf("cannot re-create redis path %s: %v", nodePath, err)
+								logs.Errorf("cannot re-create redis path %s: %v", nodePath, err)
 							}
 
 						} else {
@@ -122,7 +122,7 @@ func (p *RedisRegisterPlugin) Stop() error {
 	if p.kv == nil {
 		kv, err := valkeyrie.NewStore(store.REDIS, p.RedisServers, p.Options)
 		if err != nil {
-			log.Errorf("cannot create redis registry: %v", err)
+			logs.Errorf("cannot create redis registry: %v", err)
 			return err
 		}
 		p.kv = kv
@@ -132,12 +132,12 @@ func (p *RedisRegisterPlugin) Stop() error {
 		nodePath := fmt.Sprintf("%s/%s/%s", p.BasePath, name, p.ServiceAddress)
 		exist, err := p.kv.Exists(nodePath, nil)
 		if err != nil {
-			log.Errorf("cannot delete path %s: %v", nodePath, err)
+			logs.Errorf("cannot delete path %s: %v", nodePath, err)
 			continue
 		}
 		if exist {
 			p.kv.Delete(nodePath)
-			log.Infof("delete path %s", nodePath, err)
+			logs.Debugf("delete path %s", nodePath, err)
 		}
 	}
 	return nil
@@ -164,7 +164,7 @@ func (p *RedisRegisterPlugin) Register(name string, rcvr interface{}, metadata s
 		redis.Register()
 		kv, err := valkeyrie.NewStore(store.REDIS, p.RedisServers, p.Options)
 		if err != nil {
-			log.Errorf("cannot create redis registry: %v", err)
+			logs.Errorf("cannot create redis registry: %v", err)
 			return err
 		}
 		p.kv = kv
@@ -172,21 +172,21 @@ func (p *RedisRegisterPlugin) Register(name string, rcvr interface{}, metadata s
 
 	err = p.kv.Put(p.BasePath, []byte("rpcx_path"), &store.WriteOptions{IsDir: true})
 	if err != nil && !strings.Contains(err.Error(), "Not a file") {
-		log.Errorf("cannot create redis path %s: %v", p.BasePath, err)
+		logs.Errorf("cannot create redis path %s: %v", p.BasePath, err)
 		return err
 	}
 
 	nodePath := fmt.Sprintf("%s/%s", p.BasePath, name)
 	err = p.kv.Put(nodePath, []byte(name), &store.WriteOptions{IsDir: true})
 	if err != nil && !strings.Contains(err.Error(), "Not a file") {
-		log.Errorf("cannot create redis path %s: %v", nodePath, err)
+		logs.Errorf("cannot create redis path %s: %v", nodePath, err)
 		return err
 	}
 
 	nodePath = fmt.Sprintf("%s/%s/%s", p.BasePath, name, p.ServiceAddress)
 	err = p.kv.Put(nodePath, []byte(metadata), &store.WriteOptions{TTL: p.UpdateInterval * 2})
 	if err != nil {
-		log.Errorf("cannot create redis path %s: %v", nodePath, err)
+		logs.Errorf("cannot create redis path %s: %v", nodePath, err)
 		return err
 	}
 
@@ -211,7 +211,7 @@ func (p *RedisRegisterPlugin) Unregister(name string) (err error) {
 		redis.Register()
 		kv, err := valkeyrie.NewStore(store.REDIS, p.RedisServers, p.Options)
 		if err != nil {
-			log.Errorf("cannot create redis registry: %v", err)
+			logs.Errorf("cannot create redis registry: %v", err)
 			return err
 		}
 		p.kv = kv
@@ -219,14 +219,14 @@ func (p *RedisRegisterPlugin) Unregister(name string) (err error) {
 
 	err = p.kv.Put(p.BasePath, []byte("rpcx_path"), &store.WriteOptions{IsDir: true})
 	if err != nil && !strings.Contains(err.Error(), "Not a file") {
-		log.Errorf("cannot create redis path %s: %v", p.BasePath, err)
+		logs.Errorf("cannot create redis path %s: %v", p.BasePath, err)
 		return err
 	}
 
 	nodePath := fmt.Sprintf("%s/%s", p.BasePath, name)
 	err = p.kv.Put(nodePath, []byte(name), &store.WriteOptions{IsDir: true})
 	if err != nil && !strings.Contains(err.Error(), "Not a file") {
-		log.Errorf("cannot create redis path %s: %v", nodePath, err)
+		logs.Errorf("cannot create redis path %s: %v", nodePath, err)
 		return err
 	}
 
@@ -234,7 +234,7 @@ func (p *RedisRegisterPlugin) Unregister(name string) (err error) {
 
 	err = p.kv.Delete(nodePath)
 	if err != nil {
-		log.Errorf("cannot create consul path %s: %v", nodePath, err)
+		logs.Errorf("cannot create consul path %s: %v", nodePath, err)
 		return err
 	}
 

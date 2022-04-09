@@ -3,14 +3,14 @@ package serverplugin
 import (
 	"context"
 	"crypto/rand"
+	logs "github.com/halokid/rpcx-plus/log"
 	"io"
 	"net"
 	"sync"
 	"time"
 
-	"github.com/hashicorp/golang-lru"
-	"github.com/halokid/rpcx-plus/log"
 	"github.com/halokid/rpcx-plus/server"
+	"github.com/hashicorp/golang-lru"
 )
 
 var (
@@ -161,7 +161,7 @@ func (s *FileTransfer) start() error {
 						tempDelay = max
 					}
 
-					log.Errorf("filetransfer: accept error: %v; retrying in %v", e, tempDelay)
+					logs.Errorf("filetransfer: accept error: %v; retrying in %v", e, tempDelay)
 					time.Sleep(tempDelay)
 					continue
 				}
@@ -179,7 +179,7 @@ func (s *FileTransfer) start() error {
 			_, err := io.ReadFull(conn, token)
 			if err != nil {
 				conn.Close()
-				log.Errorf("failed to read token from %s", conn.RemoteAddr().String())
+				logs.Errorf("failed to read token from %s", conn.RemoteAddr().String())
 				continue
 			}
 
@@ -187,7 +187,7 @@ func (s *FileTransfer) start() error {
 			info, ok := s.cachedTokens.Get(tokenStr)
 			if !ok {
 				conn.Close()
-				log.Errorf("failed to read token from %s", conn.RemoteAddr().String())
+				logs.Errorf("failed to read token from %s", conn.RemoteAddr().String())
 				continue
 			}
 			s.cachedTokens.Remove(tokenStr)

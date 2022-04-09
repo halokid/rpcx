@@ -7,7 +7,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	logx "log"
 	"net"
 	"net/http"
 	"reflect"
@@ -22,7 +21,7 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/halokid/rpcx-plus/log"
+	logs "github.com/halokid/rpcx-plus/log"
 	"github.com/halokid/rpcx-plus/protocol"
 	"github.com/halokid/rpcx-plus/share"
 )
@@ -108,7 +107,7 @@ func NewServer(options ...OptionFn) *Server {
 		op(s)
 	}
 
-	log.ADebug.Print("Server default options 1 ------- %+v", s.options)
+	logs.Debug("Server default options 1 ------- %+v", s.options)
 	return s
 }
 
@@ -173,10 +172,10 @@ func (s *Server) startShutdownListener() {
 
 	// todo: 这个函数的作用是注册一些 捕获系统信号的处理逻辑， 但是默认是没有注册到任何逻辑封装的
 	// 监听服务端是否shutdown, 假如shutdown则启动stop()， stop()会delete服务注册数据
-	log.ADebug.Print("s.onShutdown捕获系统信号的处理逻辑封装 ---------------- %+v", s.onShutdown)
+	logs.Debug("s.onShutdown捕获系统信号的处理逻辑封装 ---------------- %+v", s.onShutdown)
 	go func(s *Server) {
 		// 捕捉进程终止的信号
-		log.Info("server pid:", os.Getpid())
+		logs.Debug("server pid:", os.Getpid())
 		c := make(chan os.Signal, 1)
 		signal.Notify(c, syscall.SIGTERM)
 		si := <-c
@@ -209,9 +208,9 @@ func (s *Server) Serve(network, address string) (err error) {
 	// try to start gateway
 	// todo: 这个成功启动后，服务端可同时支持rpc和http， 同一个网络端口，其中http支持有两种
 	// todo: 1. JsonRPC2处理,  2. httprouter路由处理访问
-	logx.Printf("s --- %+v", s)
+	logs.Debug("s --- %+v", s)
 	ln = s.startGateway(network, ln)
-	log.ADebug.Print("Server default options 2 ------- %+v", s.options)
+	logs.Debug("Server default options 2 ------- %+v", s.options)
 	return s.serveListener(ln)
 }
 
@@ -261,7 +260,7 @@ func (s *Server) serveListener(ln net.Listener) error {
 					tempDelay = max
 				}
 
-				log.Errorf("rpcx: 服务端接收Accept错误: %v; retrying in %v", e, tempDelay)
+				logs.Errorf("rpcx: 服务端接收Accept错误: %v; retrying in %v", e, tempDelay)
 				time.Sleep(tempDelay)
 				continue
 			}
@@ -321,7 +320,7 @@ func (s *Server) serveConn(conn net.Conn) {
 				ss = size
 			}
 			buf = buf[:ss]
-			log.Errorf("serving %s panic error: %s, stack:\n %s", conn.RemoteAddr(), err, buf)
+			logs.Errorf("serving %s panic error: %s, stack:\n %s", conn.RemoteAddr(), err, buf)
 		}
 		s.mu.Lock()
 		delete(s.activeConn, conn)
@@ -344,7 +343,7 @@ func (s *Server) serveConn(conn net.Conn) {
 			conn.SetWriteDeadline(time.Now().Add(d))
 		}
 		if err := tlsConn.Handshake(); err != nil {
-			log.Errorf("rpcx: TLS handshake error from %s: %v", conn.RemoteAddr(), err)
+			logs.Errorf("rpcx: TLS handshake error from %s: %v", conn.RemoteAddr(), err)
 			return
 		}
 	}
@@ -367,15 +366,15 @@ func (s *Server) serveConn(conn net.Conn) {
 	
 		// todo: 根据rpcx的协议格式来decode读取到的数据
 		req, err := s.readRequest(ctx, r)
-		log.ADebug.Print("req: %+v, err: %+v", req, err)
+		logs.Debug("req: %+v, err: %+v", req, err)
 		
 		if err != nil {
 			if err == io.EOF {
-				log.Infof("client has closed this conn: %s", conn.RemoteAddr().String())
+				logs.Debugf("client has closed this conn: %s", conn.RemoteAddr().String())
 			} else if strings.Contains(err.Error(), "use of closed network connection") {
-				log.Infof("rpcx: 使用了一个已经关闭的连接: %s 是关闭的", conn.RemoteAddr().String())
+				logs.Debugf("rpcx: 使用了一个已经关闭的连接: %s 是关闭的", conn.RemoteAddr().String())
 			} else {
-				log.Warnf("服务端强制close连接-rpcx: failed to read request: %v", err)
+				logs.Warnf("服务端强制close连接-rpcx: failed to read request: %v", err)
 			}
 			return
 		}
@@ -392,7 +391,7 @@ func (s *Server) serveConn(conn net.Conn) {
 		}
 
 		if err != nil {
-			logx.Printf("err 1 ---------------- %+v", err)
+			logs.Debug("err 1 ---------------- %+v", err)
 			if !req.IsOneway() {
 				res := req.Clone()
 				res.SetMessageType(protocol.Response)
@@ -412,7 +411,7 @@ func (s *Server) serveConn(conn net.Conn) {
 			protocol.FreeMsg(req)
 			// auth failed, closed the connection
 			if closeConn {
-				log.Infof("auth failed for conn %s: %v", conn.RemoteAddr().String(), err)
+				logs.Debugf("auth failed for conn %s: %v", conn.RemoteAddr().String(), err)
 				return
 			}
 			continue
@@ -420,15 +419,15 @@ func (s *Server) serveConn(conn net.Conn) {
 
 		// todo: 服务端处理客户端数据的gor
 		go func() {
-			log.ADebug.Print("server handle go func ----------------")
-			log.ADebug.Print("req 1: %+v ==> %+v ==> %+v \n <===== server handle =====>\n\n", time.Now(), req, string(req.Payload[:]))
+			logs.Debug("server handle go func ----------------")
+			logs.Debug("req 1: %+v ==> %+v ==> %+v \n <===== server handle =====>\n\n", time.Now(), req, string(req.Payload[:]))
 			atomic.AddInt32(&s.handlerMsgNum, 1)
 			defer atomic.AddInt32(&s.handlerMsgNum, -1)
 
 			if req.IsHeartbeat() {
 				req.SetMessageType(protocol.Response)
 				data := req.Encode()
-				log.ADebug.Print("isHeartbeat data: %+v", data)
+				logs.Debug("isHeartbeat data: %+v", data)
 				conn.Write(data)
 				//conn.Write([]byte("xxxxxx"))		// fixme: just my test
 				return
@@ -438,17 +437,17 @@ func (s *Server) serveConn(conn net.Conn) {
 			newCtx := share.WithLocalValue(share.WithLocalValue(ctx, share.ReqMetaDataKey, req.Metadata),
 				share.ResMetaDataKey, resMetadata)
 
-			log.ADebug.Print("===== Server DoPreHandleRequest Start =====")
+			logs.Debug("===== Server DoPreHandleRequest Start =====")
 			s.Plugins.DoPreHandleRequest(newCtx, req)
-			log.ADebug.Print("===== Server DoPreHandleRequest End =====")
+			logs.Debug("===== Server DoPreHandleRequest End =====")
 
 			// todo: 在这个方法里会调用序列化配适器来处理数据
 			res, err := s.handleRequest(newCtx, req)   // todo: 这里调用实际的服务方法， 服务和方法的逻辑是在服务端执行的，并返回给客户端
-			//log.ADebug.Print("No Heartbeat res: %+v, res.Payload: %+v, err: %+v", res, string(res.Payload[:]), err)
-			log.ADebug.Print("No Heartbeat res, res.Payload: %+v, err: %+v", string(res.Payload[:]), err)
+			//logs.Debug("No Heartbeat res: %+v, res.Payload: %+v, err: %+v", res, string(res.Payload[:]), err)
+			logs.Debug("No Heartbeat res, res.Payload: %+v, err: %+v", string(res.Payload[:]), err)
 
 			if err != nil {
-				log.Warnf("rpcx: failed to handle request: %v", err)
+				logs.Warnf("rpcx: failed to handle request: %v", err)
 			}
 
 			s.Plugins.DoPreWriteResponse(newCtx, req, res)
@@ -470,7 +469,7 @@ func (s *Server) serveConn(conn net.Conn) {
 					res.SetCompressType(req.CompressType())
 				}
 				data := res.Encode()
-				log.ADebug.Print("No Heartbeat data: %+v", string(data[:]))
+				logs.Debug("No Heartbeat data: %+v", string(data[:]))
 				//logx.Printf("No Heartbeat data: %+v", string(data[:]))
 				conn.Write(data)			// todo: res就是在服务端执行的结果，这里是把结果写回给客户端， 假如注释，client就会一直阻塞在监听服务端的返回
 				//res.WriteTo(conn)
@@ -504,7 +503,7 @@ func (s *Server) readRequest(ctx context.Context, r io.Reader) (req *protocol.Me
 	// pool req?
 	// todo: sync.Pool 重用 protocol Message结构体
 	req = protocol.GetPooledMsg()
-	log.ADebug.Print("readRequest req原本是一个空结构体 -------------- %+v", req)
+	logs.Debug("readRequest req原本是一个空结构体 -------------- %+v", req)
 	err = req.Decode(r)
 	if err == io.EOF {
 		return req, err
@@ -552,7 +551,7 @@ func (s *Server) handleRequest(ctx context.Context, req *protocol.Message) (res 
 
 	// todo: 获取序列化配适器
 	codec := share.Codecs[req.SerializeType()]
-	log.ADebug.Print("请求数据用得codec类型--------- %+v", req.SerializeType())
+	logs.Debug("请求数据用得codec类型--------- %+v", req.SerializeType())
 	if codec == nil {
 		err = fmt.Errorf("can not find codec for %d", req.SerializeType())
 		return handleError(res, err)
@@ -582,7 +581,7 @@ func (s *Server) handleRequest(ctx context.Context, req *protocol.Message) (res 
 
 	if !req.IsOneway() {
 		data, err := codec.Encode(replyv)		// todo: 按照客户端定义的编码方式encode
-		log.ADebug.Print("No Oneway 写入反射的replyv ------ %+v", replyv)
+		logs.Info("No Oneway 写入反射的replyv ------ %+v", replyv)
 		argsReplyPools.Put(mtype.ReplyType, replyv)			// fixme: 写入一个argsReply的池，即使不写入，客户端依然可以获取服务端的返回，暂时不清楚作用
 		if err != nil {
 			return handleError(res, err)
@@ -590,7 +589,7 @@ func (s *Server) handleRequest(ctx context.Context, req *protocol.Message) (res 
 		}
 		res.Payload = data				// todo: 把服务端encode的数据([]byte)类型，赋值给res..Payload
 	} else if replyv != nil {
-		logx.Printf("IsOneway 写入反射的replyv ------ %+v", replyv)
+		logs.Info("IsOneway 写入反射的replyv ------ %+v", replyv)
 		argsReplyPools.Put(mtype.ReplyType, replyv)
 	}
 
@@ -657,7 +656,7 @@ func (s *Server) handleRequestForFunction(ctx context.Context, req *protocol.Mes
 }
 
 func handleError(res *protocol.Message, err error) (*protocol.Message, error) {
-	logx.Println("---@@@-----handleError---@@@---")
+	logs.Info("---@@@-----handleError---@@@---")
 	res.SetMessageStatusType(protocol.Error)
 	if res.Metadata == nil {
 		res.Metadata = make(map[string]string)
@@ -679,7 +678,7 @@ func (s *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 	conn, _, err := w.(http.Hijacker).Hijack()
 	if err != nil {
-		log.Info("rpc hijacking ", req.RemoteAddr, ": ", err.Error())
+		logs.Info("rpc hijacking ", req.RemoteAddr, ": ", err.Error())
 		return
 	}
 	io.WriteString(conn, "HTTP/1.0 "+connected+"\n\n")
@@ -729,7 +728,7 @@ var shutdownPollInterval = 1000 * time.Millisecond
 func (s *Server) Shutdown(ctx context.Context) error {
 	var err error
 	if atomic.CompareAndSwapInt32(&s.inShutdown, 0, 1) {
-		log.Info("shutdown begin")
+		logs.Info("shutdown begin")
 
 		s.mu.Lock()
 		s.ln.Close()
@@ -757,9 +756,9 @@ func (s *Server) Shutdown(ctx context.Context) error {
 
 		if s.gatewayHTTPServer != nil {
 			if err := s.closeHTTP1APIGateway(ctx); err != nil {
-				log.Warnf("failed to close gateway: %v", err)
+				logs.Warnf("failed to close gateway: %v", err)
 			} else {
-				log.Info("closed gateway")
+				logs.Info("closed gateway")
 			}
 		}
 
@@ -772,7 +771,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 		s.closeDoneChanLocked()
 		s.mu.Unlock()
 
-		log.Info("shutdown end")
+		logs.Info("shutdown end")
 
 	}
 	return err
@@ -780,7 +779,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 
 func (s *Server) checkProcessMsg() bool {
 	size := atomic.LoadInt32(&s.handlerMsgNum)
-	log.Info("need handle in-processing msg size:", size)
+	logs.Info("need handle in-processing msg size:", size)
 	if size == 0 {
 		return true
 	}

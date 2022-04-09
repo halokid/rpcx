@@ -13,8 +13,8 @@ import (
 	"github.com/docker/libkv"
 	"github.com/docker/libkv/store"
 	"github.com/docker/libkv/store/etcd"
+	logs "github.com/halokid/rpcx-plus/log"
 	metrics "github.com/rcrowley/go-metrics"
-	"github.com/halokid/rpcx-plus/log"
 )
 
 func init() {
@@ -55,7 +55,7 @@ func (p *EtcdRegisterPlugin) Start() error {
 	if p.kv == nil {
 		kv, err := libkv.NewStore(store.ETCD, p.EtcdServers, p.Options)
 		if err != nil {
-			log.Errorf("cannot create etcd registry: %v", err)
+			logs.Errorf("cannot create etcd registry: %v", err)
 			return err
 		}
 		p.kv = kv
@@ -63,7 +63,7 @@ func (p *EtcdRegisterPlugin) Start() error {
 
 	err := p.kv.Put(p.BasePath, []byte("rpcx_path"), &store.WriteOptions{IsDir: true})
 	if err != nil && !strings.Contains(err.Error(), "Not a file") {
-		log.Errorf("cannot create etcd path %s: %v", p.BasePath, err)
+		logs.Errorf("cannot create etcd path %s: %v", p.BasePath, err)
 		return err
 	}
 
@@ -89,7 +89,7 @@ func (p *EtcdRegisterPlugin) Start() error {
 						nodePath := fmt.Sprintf("%s/%s/%s", p.BasePath, name, p.ServiceAddress)
 						kvPair, err := p.kv.Get(nodePath)
 						if err != nil {
-							log.Infof("can't get data of node: %s, because of %v", nodePath, err.Error())
+							logs.Debugf("can't get data of node: %s, because of %v", nodePath, err.Error())
 
 							p.metasLock.RLock()
 							meta := p.metas[name]
@@ -97,7 +97,7 @@ func (p *EtcdRegisterPlugin) Start() error {
 
 							err = p.kv.Put(nodePath, []byte(meta), &store.WriteOptions{TTL: p.UpdateInterval * 3})
 							if err != nil {
-								log.Errorf("cannot re-create etcd path %s: %v", nodePath, err)
+								logs.Errorf("cannot re-create etcd path %s: %v", nodePath, err)
 							}
 
 						} else {
@@ -122,7 +122,7 @@ func (p *EtcdRegisterPlugin) Stop() error {
 	if p.kv == nil {
 		kv, err := libkv.NewStore(store.ETCD, p.EtcdServers, p.Options)
 		if err != nil {
-			log.Errorf("cannot create etcd registry: %v", err)
+			logs.Errorf("cannot create etcd registry: %v", err)
 			return err
 		}
 		p.kv = kv
@@ -132,12 +132,12 @@ func (p *EtcdRegisterPlugin) Stop() error {
 		nodePath := fmt.Sprintf("%s/%s/%s", p.BasePath, name, p.ServiceAddress)
 		exist, err := p.kv.Exists(nodePath)
 		if err != nil {
-			log.Errorf("cannot delete path %s: %v", nodePath, err)
+			logs.Errorf("cannot delete path %s: %v", nodePath, err)
 			continue
 		}
 		if exist {
 			p.kv.Delete(nodePath)
-			log.Infof("delete path %s", nodePath, err)
+			logs.Debugf("delete path %s", nodePath, err)
 		}
 	}
 	return nil
@@ -164,7 +164,7 @@ func (p *EtcdRegisterPlugin) Register(name string, rcvr interface{}, metadata st
 		etcd.Register()
 		kv, err := libkv.NewStore(store.ETCD, p.EtcdServers, nil)
 		if err != nil {
-			log.Errorf("cannot create etcd registry: %v", err)
+			logs.Errorf("cannot create etcd registry: %v", err)
 			return err
 		}
 		p.kv = kv
@@ -172,21 +172,21 @@ func (p *EtcdRegisterPlugin) Register(name string, rcvr interface{}, metadata st
 
 	err = p.kv.Put(p.BasePath, []byte("rpcx_path"), &store.WriteOptions{IsDir: true})
 	if err != nil && !strings.Contains(err.Error(), "Not a file") {
-		log.Errorf("cannot create etcd path %s: %v", p.BasePath, err)
+		logs.Errorf("cannot create etcd path %s: %v", p.BasePath, err)
 		return err
 	}
 
 	nodePath := fmt.Sprintf("%s/%s", p.BasePath, name)
 	err = p.kv.Put(nodePath, []byte(name), &store.WriteOptions{IsDir: true})
 	if err != nil && !strings.Contains(err.Error(), "Not a file") {
-		log.Errorf("cannot create etcd path %s: %v", nodePath, err)
+		logs.Errorf("cannot create etcd path %s: %v", nodePath, err)
 		return err
 	}
 
 	nodePath = fmt.Sprintf("%s/%s/%s", p.BasePath, name, p.ServiceAddress)
 	err = p.kv.Put(nodePath, []byte(metadata), &store.WriteOptions{TTL: p.UpdateInterval * 2})
 	if err != nil {
-		log.Errorf("cannot create etcd path %s: %v", nodePath, err)
+		logs.Errorf("cannot create etcd path %s: %v", nodePath, err)
 		return err
 	}
 	p.Services = append(p.Services, name)
@@ -214,7 +214,7 @@ func (p *EtcdRegisterPlugin) Unregister(name string) (err error) {
 		etcd.Register()
 		kv, err := libkv.NewStore(store.ETCD, p.EtcdServers, nil)
 		if err != nil {
-			log.Errorf("cannot create etcd registry: %v", err)
+			logs.Errorf("cannot create etcd registry: %v", err)
 			return err
 		}
 		p.kv = kv
@@ -222,14 +222,14 @@ func (p *EtcdRegisterPlugin) Unregister(name string) (err error) {
 
 	err = p.kv.Put(p.BasePath, []byte("rpcx_path"), &store.WriteOptions{IsDir: true})
 	if err != nil && !strings.Contains(err.Error(), "Not a file") {
-		log.Errorf("cannot create etcd path %s: %v", p.BasePath, err)
+		logs.Errorf("cannot create etcd path %s: %v", p.BasePath, err)
 		return err
 	}
 
 	nodePath := fmt.Sprintf("%s/%s", p.BasePath, name)
 	err = p.kv.Put(nodePath, []byte(name), &store.WriteOptions{IsDir: true})
 	if err != nil && !strings.Contains(err.Error(), "Not a file") {
-		log.Errorf("cannot create etcd path %s: %v", nodePath, err)
+		logs.Errorf("cannot create etcd path %s: %v", nodePath, err)
 		return err
 	}
 
@@ -237,7 +237,7 @@ func (p *EtcdRegisterPlugin) Unregister(name string) (err error) {
 
 	err = p.kv.Delete(nodePath)
 	if err != nil {
-		log.Errorf("cannot create consul path %s: %v", nodePath, err)
+		logs.Errorf("cannot create consul path %s: %v", nodePath, err)
 		return err
 	}
 

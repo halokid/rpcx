@@ -2,9 +2,9 @@ package serverplugin
 
 import (
 	"errors"
+	logs "github.com/halokid/rpcx-plus/log"
 	"strings"
 
-	"github.com/halokid/rpcx-plus/log"
 	"github.com/halokid/rpcx-plus/util"
 	"github.com/nacos-group/nacos-sdk-go/clients"
 	"github.com/nacos-group/nacos-sdk-go/clients/naming_client"
@@ -72,7 +72,7 @@ func (p *NacosRegisterPlugin) Stop() error {
 		}
 		_, err := p.namingClient.DeregisterInstance(inst)
 		if err != nil {
-			log.Errorf("faield to deregister %s: %v", name, err)
+			logs.Errorf("faield to deregister %s: %v", name, err)
 		}
 	}
 	return nil
@@ -87,7 +87,7 @@ func (p *NacosRegisterPlugin) Register(name string, rcvr interface{}, metadata s
 
 	network, ip, port, err := util.ParseRpcxAddress(p.ServiceAddress)
 	if err != nil {
-		log.Errorf("failed to parse rpcx addr in Register: %v", err)
+		logs.Errorf("failed to parse rpcx addr in Register: %v", err)
 		return err
 	}
 
@@ -108,7 +108,7 @@ func (p *NacosRegisterPlugin) Register(name string, rcvr interface{}, metadata s
 
 	_, err = p.namingClient.RegisterInstance(inst)
 	if err != nil {
-		log.Errorf("failed to register %s: %v", name, err)
+		logs.Errorf("failed to register %s: %v", name, err)
 		return err
 	}
 
@@ -137,7 +137,7 @@ func (p *NacosRegisterPlugin) Unregister(name string) (err error) {
 	}
 	_, err = p.namingClient.DeregisterInstance(inst)
 	if err != nil {
-		log.Errorf("failed to deregister %s: %v", name, err)
+		logs.Errorf("failed to deregister %s: %v", name, err)
 		return err
 	}
 

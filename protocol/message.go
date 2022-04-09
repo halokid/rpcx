@@ -5,7 +5,7 @@ import (
 	"encoding/binary"
 	"errors"
 	"fmt"
-	"github.com/halokid/rpcx-plus/log"
+	logs "github.com/halokid/rpcx-plus/log"
 	"io"
 
 	"github.com/halokid/rpcx-plus/util"
@@ -242,7 +242,7 @@ func (m Message) Encode() []byte {
 		if compressor == nil {
 			m.SetCompressType(None)
 		} else {
-			log.ADebug.Print("数据 压缩 方式为----", m.Metadata["Content-Encoding"], m.CompressType())
+			logs.Debug("数据 压缩 方式为----", m.Metadata["Content-Encoding"], m.CompressType())
 			payload, err = compressor.Zip(m.Payload)
 			if err != nil {
 				m.SetCompressType(None)
@@ -410,9 +410,9 @@ func Read(r io.Reader) (*Message, error) {
 func (m *Message) Decode(r io.Reader) error {
 	// validate rest length for each step?
 
-	//log.Debugf("res.data 2 ---------------------  %+v", m)
+	//logs.Debugf("res.data 2 ---------------------  %+v", m)
 	// parse header
-	log.ADebug.Print("io.ReadFull读取前m.Header, 已经定义协议头了 ---------- %+v", m.Header)
+	logs.Debug("io.ReadFull读取前m.Header, 已经定义协议头了 ---------- %+v", m.Header)
 	_, err := io.ReadFull(r, m.Header[:1])		// todo: 读取协议头
 	if err != nil {
 		return err
@@ -425,18 +425,18 @@ func (m *Message) Decode(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	log.ADebug.Print("io.ReadFull读取后m.Header ---------- %+v", m.Header)
+	logs.Debug("io.ReadFull读取后m.Header ---------- %+v", m.Header)
 
 	//total
 	// todo: 读取整个 m.Header 的数据, poolUint32Data 就是创建一个 [4][]byte 的数据， 一共32位
 	lenData := poolUint32Data.Get().(*[]byte)
-	log.ADebug.Print("io.ReadFull读取前lenData ---------- %+v, %+v", lenData, &lenData)
+	logs.Debug("io.ReadFull读取前lenData ---------- %+v, %+v", lenData, &lenData)
 	_, err = io.ReadFull(r, *lenData)		// todo: 读取服务数据总长度
 	if err != nil {
 		poolUint32Data.Put(lenData)
 		return err
 	}
-	log.ADebug.Print("io.ReadFull读取后lenData ---------- %+v, %+v", lenData, &lenData)
+	logs.Debug("io.ReadFull读取后lenData ---------- %+v, %+v", lenData, &lenData)
 	l := binary.BigEndian.Uint32(*lenData)		// todo: 读取到数据总长度之后， 用大端位的方式解码出来
 	poolUint32Data.Put(lenData)
 
@@ -445,7 +445,7 @@ func (m *Message) Decode(r io.Reader) error {
 	}
 
 
-	//log.Debugf("res.data 3 ---------------------  %+v", m)
+	//logs.Debugf("res.data 3 ---------------------  %+v", m)
 
 	totalL := int(l)
 	if cap(m.data) >= totalL { //reuse data
@@ -454,12 +454,12 @@ func (m *Message) Decode(r io.Reader) error {
 		m.data = make([]byte, totalL)
 	}
 
-	//log.Debugf("res.data 4 ---------------------  %+v", m)
+	//logs.Debugf("res.data 4 ---------------------  %+v", m)
 
 	data := m.data
-	//log.Debugf("m.data 1 ---------------------- %+v", m.data)
+	//logs.Debugf("m.data 1 ---------------------- %+v", m.data)
 	_, err = io.ReadFull(r, data)
-	//log.Debugf("m.data 2 ---------------------- %+v", m.data)
+	//logs.Debugf("m.data 2 ---------------------- %+v", m.data)
 	if err != nil {
 		return err
 	}
@@ -503,7 +503,7 @@ func (m *Message) Decode(r io.Reader) error {
 		if compressor == nil {
 			return ErrUnsupportedCompressor
 		}
-		log.ADebug.Print("数据 解压缩 方式为----", m.Metadata["Content-Encoding"], m.CompressType())
+		logs.Debug("数据 解压缩 方式为----", m.Metadata["Content-Encoding"], m.CompressType())
 		m.Payload, err = compressor.Unzip(m.Payload)
 		if err != nil {
 			return err

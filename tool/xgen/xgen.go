@@ -26,7 +26,7 @@ func main() {
 
 	if *processPkg {
 		if len(flag.Args()) == 0 {
-			log.Fatalf("not set packages")
+			logs.Fatalf("not set packages")
 		}
 		var pkgFiles []string
 		for _, f := range files {
@@ -199,7 +199,7 @@ func main() {
 		fmt.Fprintln(w, `
 	err := r.Start()
 	if err != nil {
-		//log.Fatal(err)
+		//logs.Fatal(err)
 	}
 	s.Plugins.Add(r)`)
 	}

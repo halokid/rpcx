@@ -7,7 +7,7 @@ import (
 	"reflect"
 	"sync"
 
-	"github.com/halokid/rpcx-plus/log"
+	logs "github.com/halokid/rpcx-plus/log"
 	"github.com/halokid/rpcx-plus/protocol"
 	"github.com/halokid/rpcx-plus/share"
 )
@@ -63,7 +63,7 @@ func (client *inprocessClient) Go(ctx context.Context, servicePath, serviceMetho
 		// RPCs that will be using that channel. If the channel
 		// is totally unbuffered, it's best not to run at all.
 		if cap(done) == 0 {
-			log.Panic("rpc: done channel is unbuffered")
+			logs.Panic("rpc: done channel is unbuffered")
 		}
 	}
 	call.Done = done

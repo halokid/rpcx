@@ -12,7 +12,7 @@ import (
 	"unicode/utf8"
 
 	rerrors "github.com/halokid/rpcx-plus/errors"
-	"github.com/halokid/rpcx-plus/log"
+	logs "github.com/halokid/rpcx-plus/log"
 )
 
 // Precompute the reflect type for error. Can't use error directly
@@ -120,12 +120,12 @@ func (s *Server) register(rcvr interface{}, name string, useName bool) (string, 
 	}
 	if sname == "" {
 		errorStr := "rpcx.Register: no service name for type " + service.typ.String()
-		log.Error(errorStr)
+		logs.Error(errorStr)
 		return sname, errors.New(errorStr)
 	}
 	if !useName && !isExported(sname) {
 		errorStr := "rpcx.Register: type " + sname + " is not exported"
-		log.Error(errorStr)
+		logs.Error(errorStr)
 		return sname, errors.New(errorStr)
 	}
 	service.name = sname
@@ -143,7 +143,7 @@ func (s *Server) register(rcvr interface{}, name string, useName bool) (string, 
 		} else {
 			errorStr = "rpcx.Register: type " + sname + " has no exported methods of suitable type"
 		}
-		log.Error(errorStr)
+		logs.Error(errorStr)
 		return sname, errors.New(errorStr)
 	}
 	s.serviceMap[service.name] = service
@@ -181,7 +181,7 @@ func (s *Server) registerFunction(servicePath string, fn interface{}, name strin
 	}
 	if fname == "" {
 		errorStr := "rpcx.registerFunction: no func name for type " + f.Type().String()
-		log.Error(errorStr)
+		logs.Error(errorStr)
 		return fname, errors.New(errorStr)
 	}
 
@@ -241,7 +241,7 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 		// Method needs four ins: receiver, context.Context, *args, *reply.
 		if mtype.NumIn() != 4 {
 			if reportErr {
-				log.Debug("method ", mname, " has wrong number of ins:", mtype.NumIn())
+				logs.Debug("method ", mname, " has wrong number of ins:", mtype.NumIn())
 			}
 			continue
 		}
@@ -249,7 +249,7 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 		ctxType := mtype.In(1)
 		if !ctxType.Implements(typeOfContext) {
 			if reportErr {
-				log.Debug("method ", mname, " must use context.Context as the first parameter")
+				logs.Debug("method ", mname, " must use context.Context as the first parameter")
 			}
 			continue
 		}
@@ -258,7 +258,7 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 		argType := mtype.In(2)
 		if !isExportedOrBuiltinType(argType) {
 			if reportErr {
-				log.Info(mname, " parameter type not exported: ", argType)
+				logs.Debug(mname, " parameter type not exported: ", argType)
 			}
 			continue
 		}
@@ -267,28 +267,28 @@ func suitableMethods(typ reflect.Type, reportErr bool) map[string]*methodType {
 		replyType := mtype.In(3)
 		if replyType.Kind() != reflect.Ptr {
 			if reportErr {
-				log.Info("method", mname, " reply type not a pointer:", replyType)
+				logs.Debug("method", mname, " reply type not a pointer:", replyType)
 			}
 			continue
 		}
 		// Reply type must be exported.
 		if !isExportedOrBuiltinType(replyType) {
 			if reportErr {
-				log.Info("method", mname, " reply type not exported:", replyType)
+				logs.Info("method", mname, " reply type not exported:", replyType)
 			}
 			continue
 		}
 		// Method needs one out.
 		if mtype.NumOut() != 1 {
 			if reportErr {
-				log.Info("method", mname, " has wrong number of outs:", mtype.NumOut())
+				logs.Info("method", mname, " has wrong number of outs:", mtype.NumOut())
 			}
 			continue
 		}
 		// The return type of the method must be error.
 		if returnType := mtype.Out(0); returnType != typeOfError {
 			if reportErr {
-				log.Info("method", mname, " returns ", returnType.String(), " not error")
+				logs.Info("method", mname, " returns ", returnType.String(), " not error")
 			}
 			continue
 		}
@@ -329,7 +329,7 @@ func (s *service) call(ctx context.Context, mtype *methodType, argv, replyv refl
 
 			err2 := fmt.Errorf("[service internal error]: %v, method: %s, argv: %+v, stack: %s",
 				r, mtype.method.Name, argv.Interface(), buf)
-			log.Handle(err2)
+			logs.Handle(err2)
 		}
 	}()
 
@@ -348,10 +348,10 @@ func (s *service) call(ctx context.Context, mtype *methodType, argv, replyv refl
 func (s *service) callForFunction(ctx context.Context, ft *functionType, argv, replyv reflect.Value) (err error) {
 	defer func() {
 		if r := recover(); r != nil {
-			//log.Errorf("failed to invoke service: %v, stacks: %s", r, string(debug.Stack()))
+			//logs.Errorf("failed to invoke service: %v, stacks: %s", r, string(debug.Stack()))
 			err = fmt.Errorf("[service internal error]: %v, function: %s, argv: %+v",
 				r, runtime.FuncForPC(ft.fn.Pointer()), argv.Interface())
-			log.Handle(err)
+			logs.Handle(err)
 		}
 	}()
 

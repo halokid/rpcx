@@ -9,9 +9,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	log2 "github.com/halokid/rpcx-plus/log"
+	logs "github.com/halokid/rpcx-plus/log"
 	"io"
-	"log"
 	"net"
 	"net/http"
 	"net/url"
@@ -159,7 +158,7 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 
 	// todo: 定义servers， 修复相似服务名bug在这里
 	client.servers = servers
-	log2.ADebug.Print("NewXClient建立初次获取client.servers --------------- %+v", client.servers)
+	logs.Debug("NewXClient建立初次获取client.servers --------------- %+v", client.servers)
 	
 	// 检查第一个key属于什么typ
 	//serCk := servers[kCk]
@@ -169,7 +168,7 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 		//return "pyTyp"
 	//}
 	
-	//log.Println("找到的servers:", servers)
+	//logs.Debug("找到的servers:", servers)
 	/*
 	isNotGoSvc := []string{"typ=py", "typ=rust"}
 	for _, v := range servers {
@@ -200,9 +199,9 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 
 	// todo: discovery.WatchService() 返回的 ch 是一个 []*KVPair 指针
 	ch := client.discovery.WatchService()
-	log2.ADebug.Print("观察svc变化 ch ----------- %+v", ch)
+	logs.Debug("观察svc变化 ch ----------- %+v", ch)
 	if ch != nil {
-		log2.ADebug.Print("--@@@----守护监听注册中心svc:", servicePath, "的变化----@@@--")
+		logs.Debug("--@@@----守护监听注册中心svc:", servicePath, "的变化----@@@--")
 		client.ch = ch
 		// todo: here just update the client servers, real watch register nodes data change is in
 		// todo: func NewConsulDiscoveryStore
@@ -215,7 +214,7 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 // generate the node is reverse proxy or not
 func genIsReverseProxy(client *xClient, servers map[string]string) error {
 	for k := range servers {
-		log2.ADebug.Print("计算是否为反代服务-genIsReverseProxy server ------- %+v", k)
+		logs.Debug("计算是否为反代服务-genIsReverseProxy server ------- %+v", k)
 		// todo: if the service is http, then reverser proxy the service
 		if strings.Contains(k, "http") {
 			client.isReverseProxy = true
@@ -253,7 +252,7 @@ func genNotGoSvc(client *xClient, servers map[string]string) error {
 		}
 		break
 	}
-	log2.ADebug.Print("client genNotGoSvc -------------- %+v", client)
+	logs.Debug("client genNotGoSvc -------------- %+v", client)
 	return nil
 }
 
@@ -325,11 +324,11 @@ func (c *xClient) Auth(auth string) {
 // todo: just update c.servers, not watch register nodes data change here.
 // todo: watch the nodes change, check node is proxy or not, and change the isReverseProxy property
 func (c *xClient) watch(ch chan []*KVPair) {
-	log2.ADebug.Print("len ch --------------- %+v", len(ch))
+	logs.Debug("len ch --------------- %+v", len(ch))
 	for pairs := range ch {
 
 		for k, v := range pairs {
-			log2.ADebug.Print("pairs k, v ------- %+v, %+v", k, v)
+			logs.Debug("pairs k, v ------- %+v, %+v", k, v)
 		}
 
 		servers := make(map[string]string, len(pairs))
@@ -342,9 +341,9 @@ func (c *xClient) watch(ch chan []*KVPair) {
 
 		//isReverseProxyTag := false
 		for k, v := range servers {
-			log2.ADebug.Print("servers k, v ------- %+v, %+v", k, v)
+			logs.Debug("servers k, v ------- %+v, %+v", k, v)
 			if !c.isReverseProxy && checkIsReverseProxy(v) {
-				log.Printf("--- change service [%s] isReverseProxy to true ---", c.servicePath)
+				logs.Debug("--- change service [%s] isReverseProxy to true ---", c.servicePath)
 				c.isReverseProxy = true
 			}
 		}
@@ -354,7 +353,7 @@ func (c *xClient) watch(ch chan []*KVPair) {
 		}
 
 		c.mu.Unlock()
-		log2.ADebug.Print("\n\r")
+		logs.Debug("\n\r")
 	}
 }
 
@@ -383,8 +382,8 @@ func filterByStateAndGroup(group string, servers map[string]string) {
 
 // selects a client from candidates base on c.selectMode
 func (c *xClient) selectClient(ctx context.Context, servicePath, serviceMethod string, args interface{}) (string, RPCClient, error) {
-	//log.Println("selectClient ---------------")
-	//log.Println("servers ---------------", c.servers)
+	//logs.Debug("selectClient ---------------")
+	//logs.Debug("servers ---------------", c.servers)
 	c.mu.Lock()
 	k := c.selector.Select(ctx, servicePath, serviceMethod, args)
 	c.mu.Unlock()
@@ -403,7 +402,7 @@ func (c *xClient) SelectNode(ctx context.Context, servicePath, serviceMethod str
 
 func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 	// TODO: improve the lock
-	//log.Println("getCachedClient -----------------")
+	//logs.Debug("getCachedClient -----------------")
 	// todo: 声明client为的接口类 RPCClient类型
 	var client RPCClient
 	var needCallPlugin bool
@@ -421,12 +420,12 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 	}
 
 	client = c.cachedClient[k]
-	//log.Println("c.cachedClient ----- @@@@@@@@@@@@@@---- ", c.cachedClient)
+	//logs.Debug("c.cachedClient ----- @@@@@@@@@@@@@@---- ", c.cachedClient)
 	if client != nil {
 		if !client.IsClosing() && !client.IsShutdown() {
 			return client, nil			// todo: 命中cacheClient则返回
 		}
-		log.Printf("client IsClosing() or IsShutdown(), client的k和状态 --- k: %+v," +
+		logs.Debug("client IsClosing() or IsShutdown(), client的k和状态 --- k: %+v," +
 			" IsClosing(): %+v,  IsShutdown(): %+v", k, client.IsClosing(), client.IsShutdown())
 		delete(c.cachedClient, k)
 		client.Close()
@@ -448,14 +447,14 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 			if c.option.GenBreaker != nil {
 				breaker, _ = c.breakers.LoadOrStore(k, c.option.GenBreaker())
 			}
-			//log.Println("getCache 11111111 --------------------------")
+			//logs.Debug("getCache 11111111 --------------------------")
 			// todo: client连接到server， 并且把连接句柄写入conn, 这是一个长连接，cache会一直保留这个连接
 			// todo:  Connect函数会触发一个input的gor, go c.input() 这一句， 这个input就是更改 client.pending[seq]， 也就是网络请求连接状态的逻辑，SendRaw 和 call 都是靠这个来改变网络请求的状态
 
 			// todo:  cachedClient有没有必要？cacheClient是一个以 service node的 address为key， client本身为value的 map，意思就是当某一个client要连某个service node 的时候，先在这个cacheCLient取client，这个在cache里面的client已经建立了客户端到服务端的conn， 所以不用再次建立这个conn，提高效率
 			// todo: 关键性能点在于，当client 并发请求某 service node的时候， 这个cacheClient 里的client一直input一直在call service node，这里有一个for循环，不断的处理请求，当并发的时候，要for循环里面有swicth，就是当 协程重复执行 input()， 这个switch逻辑一会一直监听执行， 就是client就不会调用 conn.close()，这样就可以一直用已经建立了conn的client，提高性能， 当并发结束，则跳出switch, 按逻辑执行了 client.conn.close() 关闭客户端到服务端的连接.
 			err := client.Connect(network, addr)
-			log.Printf("完成client.Connect动作, err -------------- %+v", err)
+			logs.Debug("完成client.Connect动作, err -------------- %+v", err)
 			if err != nil {
 				if breaker != nil {
 					breaker.(Breaker).Fail()
@@ -496,7 +495,7 @@ func (c *xClient) getCachedClientWithoutLock(k string) (RPCClient, error) {
 				option:  c.option,
 				Plugins: c.Plugins,
 			}
-			log.Println("getCache 22222 --------------------------")
+			logs.Debug("getCache 22222 --------------------------")
 			err := client.Connect(network, addr)
 			if err != nil {
 				return nil, err
@@ -590,7 +589,7 @@ func (c *xClient) Call(ctx context.Context, serviceMethod string, args interface
 		retries := c.option.Retries
 		for retries >= 0 {
 			retries--
-			log2.ADebug.Print("retries ------------ %+v ", retries)
+			logs.Debug("retries ------------ %+v ", retries)
 
 			if client != nil {
 				err = c.wrapCall(ctx, client, serviceMethod, args, reply)
@@ -734,7 +733,7 @@ func callPySvc(svc, md, svcAddr string, params string) string {
 	//content, _ := rsp.Content()
 	js, _ := rsp.Json()
 	rspCt := string(js.Get("result").MustString())
-	log.Println("reqQw rsp --------------", rsp.StatusCode, rspCt)
+	logs.Debug("reqQw rsp --------------", rsp.StatusCode, rspCt)
 	return rspCt
 }
 
@@ -755,9 +754,9 @@ func uncoverError(err error) bool {
 }
 
 func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]string, []byte, error) {
-	log2.ADebug.Print("SendRaw c.servers ------------------- %+v", c.servers)
+	logs.Debug("SendRaw c.servers ------------------- %+v", c.servers)
 	if len(c.servers) == 0 {
-		log.Printf("找不到服务节点信息 svc: %+v, md: %+v", r.ServicePath, r.ServiceMethod)
+		logs.Debug("找不到服务节点信息 svc: %+v, md: %+v", r.ServicePath, r.ServiceMethod)
 		errMsg := fmt.Sprintf(`{"msg": "找不到服务节点信息 svc: %+v, md: %+v"}`, r.ServicePath, r.ServiceMethod)
 		return nil, []byte(errMsg), errors.New(errMsg)
 	}
@@ -773,9 +772,9 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 	m["X-RPCX-ServiceMethod"] = "Say"
 	m["X-RPCX-ServicePath"] = "Echo"
 	m["X-RPCX-Version"] = "0"
-	log.Println("m ----------------", m)
+	logs.Debug("m ----------------", m)
 	payload := []byte("performance debug!")
-	log.Println("payload ----------------", string(payload))
+	logs.Debug("payload ----------------", string(payload))
 	return m, payload, nil
 	*/
 	// fixme： 性能瓶颈测试 end -----------------------------------------------
@@ -795,13 +794,13 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 	}
 
 	var err error
-	//log.Println("xclient SendRow selectClient -------------")
+	//logs.Debug("xclient SendRow selectClient -------------")
 	// todo: 根据XClient的数据来生成Client，最后的SendRaw逻辑是由Client调用的
 	// todo: c.selecrClient 触发 getCachedClient 函数, 这个函数调用了 client/connection.go 的 Connect 函数,
 	// todo: 客户端建立给服务端的网络连接
 	k, client, err := c.selectClient(ctx, r.ServicePath, r.ServiceMethod, r.Payload)
-	//log.Printf("c.selectClient err ----------", err.(ServiceError), "---", err.Error())
-	log2.ADebug.Print("DEBUG halokid 2 ------ ")
+	//logs.Debug("c.selectClient err ----------", err.(ServiceError), "---", err.Error())
+	logs.Debug("DEBUG halokid 2 ------ ")
 
 	if err != nil {
 		if c.failMode == Failfast {
@@ -809,7 +808,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 		}
 
 		if _, ok := err.(ServiceError); ok {
-			log.Printf("DEBUG halokid 3 ------ ")
+			logs.Debug("DEBUG halokid 3 ------ ")
 			return nil, nil, err
 		}
 	}
@@ -821,7 +820,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 		for retries >= 0 {
 			retries--
 			if client != nil {
-				log.Printf("client 22222------ %+v", client)
+				logs.Debug("client 22222------ %+v", client)
 				// fixme: 性能优化点
 				m, payload, err := client.SendRaw(ctx, r)
 				if err == nil {
@@ -843,22 +842,22 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 		}
 		return nil, nil, err
 	case Failover:			// todo: 这个是gateway默认采用的失败方式
-		log2.ADebug.Print("DEBUG halokid 4 ------ ")
+		logs.Debug("DEBUG halokid 4 ------ ")
 		retries := c.option.Retries
-		log2.ADebug.Print("Failover模式 retries --------- %+v ", retries)
+		logs.Debug("Failover模式 retries --------- %+v ", retries)
 		for retries >= 0 {
 			retries--
-			log2.ADebug.Print("Failover模式 client --------- %+v ", client)
+			logs.Info("Failover模式 client --------- %+v ", client)
 			if client != nil {
-				//log.Printf("client Failover ----- %+v", client)
+				//logs.Info("client Failover ----- %+v", client)
 				m, payload, err := client.SendRaw(ctx, r)
-				//log.Println("Failover模式 err --------- ", err.Error())
+				//logs.Info("Failover模式 err --------- ", err.Error())
 				if err == nil {
-					log2.ADebug.Print("SendRaw 得到的 m ---------------- %+v", m)
-					//log.Println("payload ----------------", string(payload))
+					logs.Info("SendRaw 得到的 m ---------------- %+v", m)
+					//logs.Info("payload ----------------", string(payload))
 					return m, payload, nil
 				} else {
-					log2.ADebug.PrintErr("[ERROR] ---------------- %+v", err.Error())
+					logs.Info("[ERROR] ---------------- %+v", err.Error())
 				}
 				
 				if _, ok := err.(ServiceError); ok {
@@ -878,11 +877,11 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 			err = e
 		}
 
-		log2.ADebug.Print("DEBUG halokid 5 ------ ")
+		logs.Info("DEBUG halokid 5 ------ ")
 		return nil, nil, err
 
 	default: //Failfast
-		log2.ADebug.Print("client 44444------ %+v", client)
+		logs.Info("client 44444------ %+v", client)
 		m, payload, err := client.SendRaw(ctx, r)
 
 		if err != nil {
@@ -891,7 +890,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 			}
 		}
 
-		log.Printf("DEBUG halokid 1 ------ ")
+		logs.Info("DEBUG halokid 1 ------ ")
 		return m, payload, nil
 	}
 }

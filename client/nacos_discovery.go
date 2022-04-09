@@ -10,7 +10,7 @@ import (
 	"github.com/nacos-group/nacos-sdk-go/common/constant"
 	"github.com/nacos-group/nacos-sdk-go/model"
 	"github.com/nacos-group/nacos-sdk-go/vo"
-	"github.com/halokid/rpcx-plus/log"
+	logs "github.com/halokid/rpcx-plus/log"
 	"github.com/halokid/rpcx-plus/util"
 )
 
@@ -50,7 +50,7 @@ func NewNacosDiscovery(servicePath string, cluster string, clientConfig constant
 		"serverConfigs": serverConfig,
 	})
 	if err != nil {
-		log.Errorf("failed to create NacosDiscovery: %v", err)
+		logs.Errorf("failed to create NacosDiscovery: %v", err)
 		return nil
 	}
 
@@ -81,7 +81,7 @@ func (d *NacosDiscovery) fetch() {
 	})
 
 	if err != nil {
-		log.Errorf("failed to get service %s: %v", d.servicePath, err)
+		logs.Errorf("failed to get service %s: %v", d.servicePath, err)
 		return
 	}
 	var pairs = make([]*KVPair, 0, len(service.Hosts))
@@ -181,7 +181,7 @@ func (d *NacosDiscovery) watch() {
 					select {
 					case ch <- d.pairs:
 					case <-time.After(time.Minute):
-						log.Warn("chan is full and new change has been dropped")
+						logs.Warn("chan is full and new change has been dropped")
 					}
 				}()
 			}
@@ -209,7 +209,7 @@ func (d *NacosDiscovery) watch() {
 				if max := 30 * time.Second; tempDelay > max {
 					tempDelay = max
 				}
-				log.Warnf("can not subscribe (with retry %d, sleep %v): %s: %v", retry, tempDelay, d.servicePath, err)
+				logs.Warnf("can not subscribe (with retry %d, sleep %v): %s: %v", retry, tempDelay, d.servicePath, err)
 				time.Sleep(tempDelay)
 				continue
 			}

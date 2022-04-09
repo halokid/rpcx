@@ -2,7 +2,7 @@ package client
 
 import (
   "github.com/halokid/ColorfulRabbit"
-  "log"
+  logs "github.com/halokid/rpcx-plus/log"
   "strings"
 )
 
@@ -43,7 +43,7 @@ func (c *caller) GetSvcTyp() string {
 func (c *caller) Call(notGoServers map[string]string, svc string, call string, bodyTran map[string]interface{}, psKey []string) ([]byte, error) {
 
   nodeAddr := c.selectNode(notGoServers)
-  log.Printf("nodeAddr --------- %+v", nodeAddr)
+  logs.Debug("nodeAddr --------- %+v", nodeAddr)
   b, err := c.invoke(nodeAddr, svc, call, bodyTran, psKey)
   return b, err
 }
@@ -69,7 +69,7 @@ func (c *caller) invoke(nodeAddr string, svc string, call string,
     var b []byte
     var err error
     for retries >= 0 {
-      log.Println("Failtry once---")
+      logs.Debug("Failtry once---")
       retries--
       b, err = c.invokeWrap(nodeAddr, svc, call, bodyTran, psKey)
       if err == nil {

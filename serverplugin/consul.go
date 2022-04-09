@@ -9,6 +9,7 @@ folder的方法来注册， 所以这里是注册 与 实际运行 是分开两�
 import (
 	"errors"
 	"fmt"
+	logs "github.com/halokid/rpcx-plus/log"
 	"net"
 	"net/url"
 	"strconv"
@@ -20,7 +21,6 @@ import (
 	"github.com/docker/libkv/store"
 	"github.com/docker/libkv/store/consul"
 	metrics "github.com/rcrowley/go-metrics"
-	"github.com/halokid/rpcx-plus/log"
 )
 
 func init() {
@@ -61,7 +61,7 @@ func (p *ConsulRegisterPlugin) Start() error {
 	if p.kv == nil {
 		kv, err := libkv.NewStore(store.CONSUL, p.ConsulServers, p.Options)
 		if err != nil {
-			log.Errorf("cannot create consul registry: %v", err)
+			logs.Errorf("cannot create consul registry: %v", err)
 			return err
 		}
 		p.kv = kv
@@ -73,7 +73,7 @@ func (p *ConsulRegisterPlugin) Start() error {
 
 	err := p.kv.Put(p.BasePath, []byte("rpcx_path"), &store.WriteOptions{IsDir: true})
 	if err != nil {
-		log.Errorf("cannot create consul path %s: %v", p.BasePath, err)
+		logs.Errorf("cannot create consul path %s: %v", p.BasePath, err)
 		return err
 	}
 
@@ -104,7 +104,7 @@ func (p *ConsulRegisterPlugin) Start() error {
 						kvPaire, err := p.kv.Get(nodePath)
 						if err != nil {
 							// 如果获取不了key
-							log.Warnf("can't get data of node: %s, will re-create, because of %v", nodePath, err.Error())
+							logs.Warnf("can't get data of node: %s, will re-create, because of %v", nodePath, err.Error())
 
 							p.metasLock.RLock()
 							meta := p.metas[name]
@@ -112,7 +112,7 @@ func (p *ConsulRegisterPlugin) Start() error {
 							// 超时时间设置为配置的TTL的 3倍
 							err = p.kv.Put(nodePath, []byte(meta), &store.WriteOptions{TTL: p.UpdateInterval * 3})
 							if err != nil {
-								log.Errorf("cannot re-create consul path %s: %v", nodePath, err)
+								logs.Errorf("cannot re-create consul path %s: %v", nodePath, err)
 							}
 						} else {
 							v, _ := url.ParseQuery(string(kvPaire.Value))
@@ -136,7 +136,7 @@ func (p *ConsulRegisterPlugin) Stop() error {
 	if p.kv == nil {
 		kv, err := libkv.NewStore(store.CONSUL, p.ConsulServers, p.Options)
 		if err != nil {
-			log.Errorf("cannot create consul registry: %v", err)
+			logs.Errorf("cannot create consul registry: %v", err)
 			return err
 		}
 		p.kv = kv
@@ -150,12 +150,12 @@ func (p *ConsulRegisterPlugin) Stop() error {
 		nodePath := fmt.Sprintf("%s/%s/%s", p.BasePath, name, p.ServiceAddress)
 		exist, err := p.kv.Exists(nodePath)
 		if err != nil {
-			log.Errorf("cannot delete path %s: %v", nodePath, err)
+			logs.Errorf("cannot delete path %s: %v", nodePath, err)
 			continue
 		}
 		if exist {
 			p.kv.Delete(nodePath)
-			log.Infof("delete path %s", nodePath, err)
+			logs.Debugf("delete path %s", nodePath, err)
 		}
 	}
 	return nil
@@ -184,7 +184,7 @@ func (p *ConsulRegisterPlugin) Register(name string, rcvr interface{}, metadata 
 		// todo: docker.libkv 是一个注册中心中间件封装组件, 定义kv的类型为consul
 		kv, err := libkv.NewStore(store.CONSUL, p.ConsulServers, nil)
 		if err != nil {
-			log.Errorf("cannot create consul registry: %v", err)
+			logs.Errorf("cannot create consul registry: %v", err)
 			return err
 		}
 		p.kv = kv
@@ -195,21 +195,21 @@ func (p *ConsulRegisterPlugin) Register(name string, rcvr interface{}, metadata 
 	}
 	err = p.kv.Put(p.BasePath, []byte("rpcx_path"), &store.WriteOptions{IsDir: true})
 	if err != nil {
-		log.Errorf("cannot create consul path %s: %v", p.BasePath, err)
+		logs.Errorf("cannot create consul path %s: %v", p.BasePath, err)
 		return err
 	}
 
 	nodePath := fmt.Sprintf("%s/%s", p.BasePath, name)
 	err = p.kv.Put(nodePath, []byte(name), &store.WriteOptions{IsDir: true})
 	if err != nil {
-		log.Errorf("cannot create consul path %s: %v", nodePath, err)
+		logs.Errorf("cannot create consul path %s: %v", nodePath, err)
 		return err
 	}
 
 	nodePath = fmt.Sprintf("%s/%s/%s", p.BasePath, name, p.ServiceAddress)
 	err = p.kv.Put(nodePath, []byte(metadata), &store.WriteOptions{TTL: p.UpdateInterval * 2})
 	if err != nil {
-		log.Errorf("cannot create consul path %s: %v", nodePath, err)
+		logs.Errorf("cannot create consul path %s: %v", nodePath, err)
 		return err
 	}
 
@@ -238,7 +238,7 @@ func (p *ConsulRegisterPlugin) Unregister(name string) (err error) {
 		consul.Register()
 		kv, err := libkv.NewStore(store.CONSUL, p.ConsulServers, nil)
 		if err != nil {
-			log.Errorf("cannot create consul registry: %v", err)
+			logs.Errorf("cannot create consul registry: %v", err)
 			return err
 		}
 		p.kv = kv
@@ -249,7 +249,7 @@ func (p *ConsulRegisterPlugin) Unregister(name string) (err error) {
 	}
 	err = p.kv.Put(p.BasePath, []byte("rpcx_path"), &store.WriteOptions{IsDir: true})
 	if err != nil {
-		log.Errorf("cannot create consul path %s: %v", p.BasePath, err)
+		logs.Errorf("cannot create consul path %s: %v", p.BasePath, err)
 		return err
 	}
 
@@ -257,7 +257,7 @@ func (p *ConsulRegisterPlugin) Unregister(name string) (err error) {
 
 	err = p.kv.Put(nodePath, []byte(name), &store.WriteOptions{IsDir: true})
 	if err != nil {
-		log.Errorf("cannot create consul path %s: %v", nodePath, err)
+		logs.Errorf("cannot create consul path %s: %v", nodePath, err)
 		return err
 	}
 
@@ -265,7 +265,7 @@ func (p *ConsulRegisterPlugin) Unregister(name string) (err error) {
 
 	err = p.kv.Delete(nodePath)
 	if err != nil {
-		log.Errorf("cannot create consul path %s: %v", nodePath, err)
+		logs.Errorf("cannot create consul path %s: %v", nodePath, err)
 		return err
 	}
 

@@ -4,13 +4,13 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"log"
 	"sync"
 
 	"github.com/halokid/rpcx-plus/serverplugin"
 
-	multierror "github.com/hashicorp/go-multierror"
+	logs "github.com/halokid/rpcx-plus/log"
 	"github.com/halokid/rpcx-plus/protocol"
+	multierror "github.com/hashicorp/go-multierror"
 )
 
 // OneClient wraps servicesPath and XClients.
@@ -211,7 +211,7 @@ func (c *OneClient) SendRaw(ctx context.Context, r *protocol.Message) (map[strin
 		}
 	}
 
-	log.Printf("xclient 1111 ------ %+v", xclient)
+	logs.Debug("xclient 1111 ------ %+v", xclient)
 	return xclient.SendRaw(ctx, r)
 }
 

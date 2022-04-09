@@ -6,14 +6,13 @@ import (
   "context"
   "crypto/tls"
   "errors"
-  "github.com/halokid/rpcx-plus/log"
+  logs "github.com/halokid/rpcx-plus/log"
   "github.com/halokid/rpcx-plus/protocol"
   "github.com/halokid/rpcx-plus/share"
   "github.com/opentracing/opentracing-go"
   "github.com/rubyist/circuitbreaker"
   "go.opencensus.io/trace"
   "io"
-  logx "log"
   "net"
   "net/url"
   "reflect"
@@ -177,8 +176,8 @@ func (call *Call) done() {
   case call.Done <- call:       // todo: 是这里重写了SendRaw的 call.Done
     // ok
   default:
-    //log.Debug("rpc: discarding Call reply due to insufficient Done chan capacity")
-    log.Debug("rpc: 因 call.Done 无法接收到信号，该请求无法完成，无法获取reply")
+    //logs.Debug("rpc: discarding Call reply due to insufficient Done chan capacity")
+    logs.Debug("rpc: 因 call.Done 无法接收到信号，该请求无法完成，无法获取reply")
   }
 }
 
@@ -229,30 +228,30 @@ func (client *Client) Go(ctx context.Context, servicePath, serviceMethod string,
 
   call.Args = args
   call.Reply = reply      // todo: 这里已经初始化了reply的内存
-  log.ADebug.Print("call.Reply 1 -------------- %+v", call.Reply)
+  logs.Debug("call.Reply 1 -------------- %+v", call.Reply)
 
   if done == nil {
-    log.ADebug.Print("赋值给call.Doone 的 done 为空 ---- %+v", &done)
+    logs.Debug("赋值给call.Doone 的 done 为空 ---- %+v", &done)
     done = make(chan *Call, 10) // buffered.
   } else {
-    log.ADebug.Print("赋值给call.Doone 的 done 不为空 ------- %+v", &done)
+    logs.Debug("赋值给call.Doone 的 done 不为空 ------- %+v", &done)
     // If caller passes done != nil, it must arrange that
     // done has enough buffer for the number of simultaneous
     // RPCs that will be using that channel. If the channel
     // is totally unbuffered, it's best not to run at all.
     if cap(done) == 0 {
-      log.Panic("rpc: done channel is unbuffered")
+      logs.Panic("rpc: done channel is unbuffered")
     }
   }
   call.Done = done
-  log.ADebug.Print("call 4: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", reflect.TypeOf(call), call, call.Args, call.Reply)
-  log.ADebug.Print("client.send之前 call.Done --------- %+v", call.Done)
+  logs.Info("call 4: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", reflect.TypeOf(call), call, call.Args, call.Reply)
+  logs.Info("client.send之前 call.Done --------- %+v", call.Done)
 
   client.send(ctx, call)        // todo: 发送客户端请求给服务端
 
-  log.ADebug.Print("client.send之后 call.Done --------- %+v", call.Done)
-  log.ADebug.Print("client.send 之后  call.Done channel就会写进数据, 然后就不会阻塞")
-  log.ADebug.Print("假如这个print比call 3的 select case后执行，则reply没数据，因为print输出调用call的时候，call已经被case从channel接收走了，%+v call 5: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
+  logs.Info("client.send之后 call.Done --------- %+v", call.Done)
+  logs.Info("client.send 之后  call.Done channel就会写进数据, 然后就不会阻塞")
+  logs.Info("假如这个print比call 3的 select case后执行，则reply没数据，因为print输出调用call的时候，call已经被case从channel接收走了，%+v call 5: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
   return call
 }
 
@@ -278,7 +277,7 @@ func (client *Client) injectOpenTracingSpan(ctx context.Context, call *Call) {
     opentracing.TextMap,
     opentracing.TextMapCarrier(meta))
   if err != nil {
-    log.Errorf("failed to inject span: %v", err)
+    logs.Errorf("failed to inject span: %v", err)
   }
 }
 
@@ -318,7 +317,7 @@ func (client *Client) call(ctx context.Context, servicePath, serviceMethod strin
   seq := new(uint64)
   ctx = context.WithValue(ctx, seqKey{}, seq)
   Done := client.Go(ctx, servicePath, serviceMethod, args, reply, make(chan *Call, 1)).Done
-  log.ADebug.Print("call Go Done, 如果客户端收不到服务端的数据，这里会一直阻塞, 客户端收到服务端数据才会写进Done chann *call: %+v", Done)
+  logs.Info("call Go Done, 如果客户端收不到服务端的数据，这里会一直阻塞, 客户端收到服务端数据才会写进Done chann *call: %+v", Done)
 
   var err error
   select {
@@ -335,7 +334,7 @@ func (client *Client) call(ctx context.Context, servicePath, serviceMethod strin
     return ctx.Err()
 
   case call := <-Done:      // 当前的call已经完成
-    log.ADebug.Print("从time.Now()得知这里是最后获取数据的 %+v call 3: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
+    logs.Info("从time.Now()得知这里是最后获取数据的 %+v call 3: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
     err = call.Error
     meta := ctx.Value(share.ResMetaDataKey)
     if meta != nil && len(call.ResMetadata) > 0 {
@@ -381,32 +380,32 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
 
   // fixme: done的channel长度只有10， 可能这里是一个性能瓶颈
   done := make(chan *Call, 10)
-  //log.Debugf("done 1 ----------------- %+v", done)
+  //logs.Debugf("done 1 ----------------- %+v", done)
   call.Done = done          // todo： 某个gor改变call.Done 从而改变done, 可能是Go函数?
-  //log.Debugf("call.Done 1 ----------------- %+v", call.Done)
-  //log.Debugf("done 2 ----------------- %+v", done)
+  //logs.Debugf("call.Done 1 ----------------- %+v", call.Done)
+  //logs.Debugf("done 2 ----------------- %+v", done)
 
   // todo: 转化XMessageIDVal的值
   seq := r.Seq()
-  //logx.Printf("seq XMessageID ----------------- %+v", seq)
+  //logs.Printf("seq XMessageID ----------------- %+v", seq)
 
   client.mutex.Lock()
   if client.pending == nil {
     client.pending = make(map[uint64]*Call)
   }
   client.pending[seq] = call        // todo: 通过这里传入call， 有协程在监听pending，然后改变call的状态
-  //log.Debugf("done 3 ----------------- %+v", done)
+  //logs.Debugf("done 3 ----------------- %+v", done)
   client.mutex.Unlock()
 
   // todo: 这里是压缩， 不是用序列化方法， 假如采用加密方式， Encode 会加密请求的数据
   data := r.Encode() // 请求的所有数据转化为[]byte
   _, err := client.Conn.Write(data)
-  //log.Debug("client.Conn.Write err -----------------", err)
-  //log.Debugf("done 4 ----------------- %+v", done)
-  //log.Debugf("call.Done 2 ----------------- %+v", call.Done)
+  //logs.Debug("client.Conn.Write err -----------------", err)
+  //logs.Debugf("done 4 ----------------- %+v", done)
+  //logs.Debugf("call.Done 2 ----------------- %+v", call.Done)
 
   if err != nil {
-    logx.Println("client.Conn.Write(data) err -------", err)
+    logs.Info("client.Conn.Write(data) err -------", err)
     client.mutex.Lock()
     call = client.pending[seq]
     delete(client.pending, seq)
@@ -419,7 +418,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
   }
 
   if r.IsOneway() {
-    logx.Println("---@@@------- IsOneway --------@@@---")
+    logs.Info("---@@@------- IsOneway --------@@@---")
     client.mutex.Lock()
     call = client.pending[seq]
     delete(client.pending, seq)
@@ -435,7 +434,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
 
   select {
   case <-ctx.Done(): //cancel by context
-    logx.Println("---@@@------- ctx.Done() --------@@@---")
+    logs.Info("---@@@------- ctx.Done() --------@@@---")
     client.mutex.Lock()
     call := client.pending[seq]
     delete(client.pending, seq)
@@ -447,18 +446,18 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
     return nil, nil, ctx.Err()
 
   case call := <-done:        // todo: 写入done channel的就是这个call请求本身
-    log.ADebug.Print("---@@@------- <-done --------@@@--- %+v", done)
-    //log.Debugf("select call := <-done  %+v ----------------", call)
+    logs.Info("---@@@------- <-done --------@@@--- %+v", done)
+    //logs.Debugf("select call := <-done  %+v ----------------", call)
     err = call.Error
     m = call.Metadata
-    log.ADebug.Print("Client.SendRaw 中得到的 m ----------- %+v, %+v", len(m), m)
+    logs.Info("Client.SendRaw 中得到的 m ----------- %+v, %+v", len(m), m)
     if call.Reply != nil {
-      log.ADebug.Print("----@@----call.Reply != nil ----@@----")
+      logs.Info("----@@----call.Reply != nil ----@@----")
       payload = call.Reply.([]byte)
     }
 
   //default:
-  //log.Debugf("done 5 ----------------- %+v", done)
+  //logs.Debugf("done 5 ----------------- %+v", done)
   }
 
   // fixme: 设计缺陷， 这里return的根本就不是处理之后的m, payload， 因为假如是采用了加密方式的话， 这里的数据已经变了
@@ -466,7 +465,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
 }
 
 func convertRes2Raw(res *protocol.Message) (map[string]string, []byte, error) {
-  //log.Debugf("res.Payload 1 ---------------- %+v", res.Payload)
+  //logs.Debugf("res.Payload 1 ---------------- %+v", res.Payload)
   m := make(map[string]string)
   m[XVersion] = strconv.Itoa(int(res.Version()))
   if res.IsHeartbeat() {
@@ -485,7 +484,7 @@ func convertRes2Raw(res *protocol.Message) (map[string]string, []byte, error) {
     m["Content-Encoding"] = "gzip"
   }
 
-  //log.Debugf("res.Payload 2 ---------------- %+v", res.Payload)
+  //logs.Debugf("res.Payload 2 ---------------- %+v", res.Payload)
 
   m[XMeta] = urlencode(res.Metadata)
   m[XSerializeType] = strconv.Itoa(int(res.SerializeType()))
@@ -493,7 +492,7 @@ func convertRes2Raw(res *protocol.Message) (map[string]string, []byte, error) {
   m[XServicePath] = res.ServicePath
   m[XServiceMethod] = res.ServiceMethod
 
-  //log.Debugf("res.Payload 3 ---------------- %+v", res.Payload)
+  //logs.Debugf("res.Payload 3 ---------------- %+v", res.Payload)
 
   return m, res.Payload, nil
 }
@@ -517,7 +516,7 @@ func (client *Client) send(ctx context.Context, call *Call) {
 
   // Register this call.
   // client.Conn.Write(data) 发送数据给服务端
-  log.ADebug.Print("call 1: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", reflect.TypeOf(call), call, call.Args, call.Reply)
+  logs.Info("call 1: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", reflect.TypeOf(call), call, call.Args, call.Reply)
 
   client.mutex.Lock()       // 锁住client， mutex作为一个锁句柄，放在client里面作为属性，方便调用
   if client.shutdown || client.closing {
@@ -554,7 +553,7 @@ func (client *Client) send(ctx context.Context, call *Call) {
   req.SetMessageType(protocol.Request)    // 设置数据类型是request
   req.SetSeq(seq)
   if call.Reply == nil {
-    logx.Println("call.Reply is nil, 不需要服务端返回 run here!!! -------------")
+    logs.Info("call.Reply is nil, 不需要服务端返回 run here!!! -------------")
     req.SetOneway(true)
   }
 
@@ -590,7 +589,7 @@ func (client *Client) send(ctx context.Context, call *Call) {
   }
   data := req.Encode()
 
-  log.ADebug.Print("%+v call 6: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
+  logs.Info("%+v call 6: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
 
   // todo: 发送给服务端之后，客户端是怎样获取返回的数据的呢？
   // todo: 关键点1:  client 声明的 service reply结构体的数据是在 client.call 的流程中更改的, 也就是写入了服务端的返回数据， 而不是等 client.call 整个流程完成之后才写入的, client 监听 chan 作为 call流程的完成方式
@@ -602,15 +601,15 @@ func (client *Client) send(ctx context.Context, call *Call) {
   // todo: 4.  那究竟是怎么把服务端的返回写入 call.Reply的呢？ 在 c.input函数里面， 通过 call = client.pending[seq]  取得每一次的call对象， 再通过 err = codec.Decode(data, call.Reply)，赋值给call.Reply, 然后因为开始客户端定义 reply := &Reply{},  是一个引用指针， 当 call.Reply = reply的时候， call.Reply 承接了这个指针， 当改变  call.Reply 的值时， 就会改变 &Reply{}, 就会改变 reply， 所以客户端可以用reply来捕获服务端的输出, 具体的范例在 testWriteToReply
   _, err := client.Conn.Write(data)   // todo: 向连接服务端的conn写入数据
 
-  log.ADebug.Print("%+v call 7: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
+  logs.Info("%+v call 7: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
 
-  //logx.Printf("client send data to serv: %+v -- %+v -- %+v", reflect.TypeOf(data), data, string(data[0:]))
-  log.ADebug.Print("client send data to serv: %+v ==> %+v ==> %+v", reflect.TypeOf(data), data, *(*string)(unsafe.Pointer(&data)))
-  log.ADebug.Print("%+v", *(*string)(unsafe.Pointer(&data)))
-  log.ADebug.Print(" --  " + string(data[:]) + "\n")
-  log.ADebug.Print("头16位是:--- " + string(data[:16]) + "\n")
+  //logs.Printf("client send data to serv: %+v -- %+v -- %+v", reflect.TypeOf(data), data, string(data[0:]))
+  logs.Info("client send data to serv: %+v ==> %+v ==> %+v", reflect.TypeOf(data), data, *(*string)(unsafe.Pointer(&data)))
+  logs.Info("%+v", *(*string)(unsafe.Pointer(&data)))
+  logs.Info(" --  " + string(data[:]) + "\n")
+  logs.Info("头16位是:--- " + string(data[:16]) + "\n")
 
-  log.ADebug.Print("%+v call 8: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
+  logs.Info("%+v call 8: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
 
   ///**
   // todo: 如果client 跟 server在通信过程中有错误，则从client 的 pending 列表里面delete这个有错误的call， 设置call.Error 和 call.done()，直接返回
@@ -632,10 +631,10 @@ func (client *Client) send(ctx context.Context, call *Call) {
   protocol.FreeMsg(req)
 
   // todo: 输出call的整体数据， 这里因为call 是一个 chan， 可能被其他协程的select监听输出了，所以这里输出的call是一个初始化的call，还没有赋值reply的都有可能，所以这里不应该这样输出， 会误导调试数据逻辑
-  log.ADebug.Print("%+v call 2: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
+  logs.Info("%+v call 2: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
 
   if isOneway {
-    log.ADebug.Print(" ======= after call isOneway =======")
+    logs.Info(" ======= after call isOneway =======")
     client.mutex.Lock()
     call = client.pending[seq]
     delete(client.pending, seq)
@@ -661,18 +660,18 @@ func (client *Client) input() {
     }
 
 
-    //log.Debugf("res.Payload 1 --------------------- %+v", res.Payload)
-    //log.Debugf("len: client.r 2 ---------------------  %+v", client.r)
-    //log.Debugf("res.data 1 ---------------------  %+v", res)
+    //logs.Debugf("res.Payload 1 --------------------- %+v", res.Payload)
+    //logs.Debugf("len: client.r 2 ---------------------  %+v", client.r)
+    //logs.Debugf("res.data 1 ---------------------  %+v", res)
     // todo: 是input改变了 client.r 的值???,  Decode函数一直在读取 client.r的数据
     // todo: res 就是服务端执行之后，返回给客户端的数据
     // todo: 包含解压的过程
-    log.ADebug.Print(" ========= res.MessageStatusType() 1 ======== %+v", res.MessageStatusType())
+    logs.Info(" ========= res.MessageStatusType() 1 ======== %+v", res.MessageStatusType())
 
     // todo: 包含序列化数据的过程， 如果客户端和服务端序列化方法不同， 会把产生的错误写进  res.MessageStatusType(). 如果是服务端检查到 序列化方法不对， 会返回给  client.r, 具体是会把 protol.Error 定义为1
     err = res.Decode(client.r)
-    log.ADebug.Print(" ========= res.MessageStatusType() 2 ======== %+v", res.MessageStatusType())
-    //log.Debugf("res.Payload 2 --------------------- %+v", res.Payload)
+    logs.Info(" ========= res.MessageStatusType() 2 ======== %+v", res.MessageStatusType())
+    //logs.Debugf("res.Payload 2 --------------------- %+v", res.Payload)
 
     if err != nil {
       break
@@ -693,11 +692,11 @@ func (client *Client) input() {
       client.mutex.Unlock()
     }
 
-    //log.Debugf("call.Reply 1 --------------------- %+v", call.Reply)
+    //logs.Debugf("call.Reply 1 --------------------- %+v", call.Reply)
 
     switch {    // todo: 协程重复执行 input()， 这个switch逻辑一会一直监听执行
     case call == nil:
-      logx.Printf(" ========= go client.input() 1, call is nil ========")
+      logs.Info(" ========= go client.input() 1, call is nil ========")
       if isServerMessage {
         if client.ServerMessageChan != nil {
           go client.handleServerRequest(res)
@@ -707,7 +706,7 @@ func (client *Client) input() {
 
     case res.MessageStatusType() == protocol.Error:
       // We've got an error response. Give this to the request
-      log.ADebug.Print(" ========= 序列化数据错误 go client.input() 2, client msg protocol Error ========")
+      logs.Info(" ========= 序列化数据错误 go client.input() 2, client msg protocol Error ========")
       if len(res.Metadata) > 0 {
         call.ResMetadata = res.Metadata
         call.Error = ServiceError(res.Metadata[protocol.ServiceError])
@@ -720,13 +719,13 @@ func (client *Client) input() {
       call.done()
 
     default:
-      log.ADebug.Print(" ========= go client.input() 3, all is fine ========")
+      logs.Info(" ========= go client.input() 3, all is fine ========")
       if call.Raw {
-        //log.Debugf("res.Payload 3 --------------------- %+v", res.Payload)
-        //log.Debugf("call.Reply 2 --------------------- %+v", call.Reply)
+        //logs.Debugf("res.Payload 3 --------------------- %+v", res.Payload)
+        //logs.Debugf("call.Reply 2 --------------------- %+v", call.Reply)
         // todo: 重点， 假如是GW的请求， 根本就不会走 解压缩的逻辑， 因为GW调用 SendRaw 方法， 定义了 Call.RAW 为 true
         call.Metadata, call.Reply, _ = convertRes2Raw(res)
-        //log.Debugf("call.Reply 3 --------------------- %+v", string(call.Reply.([]uint8)))
+        //logs.Debugf("call.Reply 3 --------------------- %+v", string(call.Reply.([]uint8)))
       } else {
         data := res.Payload
         if len(data) > 0 {
@@ -735,8 +734,8 @@ func (client *Client) input() {
             call.Error = ServiceError(ErrUnsupportedCodec.Error())
           } else {
             // todo: 把服务端的处理结果写入 call.Reply, 从而影响 reply = &Reply{}, 具体范例在echo client sample 的 testWriteToReply
-            log.ADebug.Print("data Decode --------- %+v, %+v, %+v", reflect.TypeOf(data), len(data), string(data))
-            log.ADebug.Print("call.Reply Decode --------- %+v, %+v", reflect.TypeOf(call.Reply), call.Reply)
+            logs.Info("data Decode --------- %+v, %+v, %+v", reflect.TypeOf(data), len(data), string(data))
+            logs.Info("call.Reply Decode --------- %+v, %+v", reflect.TypeOf(call.Reply), call.Reply)
             err = codec.Decode(data, call.Reply)
             if err != nil {
               call.Error = ServiceError(err.Error())
@@ -755,7 +754,7 @@ func (client *Client) input() {
   // Terminate pending calls.
 
   if client.ServerMessageChan != nil {
-    //log.Debugf("---@@@@@------client.ServerMessageChan != nil ---@@@@@-----")
+    //logs.Debugf("---@@@@@------client.ServerMessageChan != nil ---@@@@@-----")
     req := protocol.NewMessage()
     req.SetMessageType(protocol.Request)
     req.SetMessageStatusType(protocol.Error)
@@ -789,21 +788,21 @@ func (client *Client) input() {
   }
   for _, call := range client.pending {
     call.Error = err
-    log.Debug("客户端调用超时错误，客户端会关闭连接: ---------- ", err)
+    logs.Debug("客户端调用超时错误，客户端会关闭连接: ---------- ", err)
     call.done()
   }
 
   client.mutex.Unlock()
 
   if err != nil && err != io.EOF && !closing {
-    log.Error("rpcx: client protocol error:", err)
+    logs.Error("rpcx: client protocol error:", err)
   }
 }
 
 func (client *Client) handleServerRequest(msg *protocol.Message) {
   defer func() {
     if r := recover(); r != nil {
-      log.Errorf("ServerMessageChan may be closed so client remove it. Please add it again if you want to handle server requests. error is %v", r)
+      logs.Errorf("ServerMessageChan may be closed so client remove it. Please add it again if you want to handle server requests. error is %v", r)
       client.ServerMessageChan = nil
     }
   }()
@@ -812,7 +811,7 @@ func (client *Client) handleServerRequest(msg *protocol.Message) {
   select {
   case client.ServerMessageChan <- msg:
   case <-t.C:
-    log.Warnf("ServerMessageChan may be full so the server request %d has been dropped", msg.Seq())
+    logs.Warnf("ServerMessageChan may be full so the server request %d has been dropped", msg.Seq())
   }
   t.Stop()
 }
@@ -828,7 +827,7 @@ func (client *Client) heartbeat() {
 
     err := client.Call(context.Background(), "", "", nil, nil)
     if err != nil {
-      log.Warnf("failed to heartbeat to %s", client.Conn.RemoteAddr().String())
+      logs.Warnf("failed to heartbeat to %s", client.Conn.RemoteAddr().String())
     }
   }
 }
