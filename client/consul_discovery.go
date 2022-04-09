@@ -166,7 +166,7 @@ func (d *ConsulDiscovery) watch() {
     var c <-chan []*store.KVPair
     var tempDelay time.Duration
 
-    logs.Debug("实时的consul发现状态 -------- %+v", d)
+    logs.Debugf("实时的consul发现状态 -------- %+v", d)
     retry := d.RetriesAfterWatchFailed
     for d.RetriesAfterWatchFailed < 0 || retry >= 0 {
       logs.Debug("----------- 执行 go d.watch() -> 执行WatchTree ------------")

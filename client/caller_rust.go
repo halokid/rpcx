@@ -31,7 +31,7 @@ func (c *caller) invokeRust(nodeAddr string, svc string, call string, bodyTran m
   if err != nil {
     logs.Fatalf("could not greet: %v", err)
   }
-  logs.Debug("say_hi---rsp type: %+v, struct: %+v, val: %+v", reflect.TypeOf(rsp), rsp, rsp.Rspdata)
+  logs.Debugf("say_hi---rsp type: %+v, struct: %+v, val: %+v", reflect.TypeOf(rsp), rsp, rsp.Rspdata)
 
   return []byte(rsp.Rspdata), nil
 }

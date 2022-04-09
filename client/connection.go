@@ -97,8 +97,8 @@ func newDirectConn(c *Client, network, address string) (net.Conn, error) {
 		conn = net.Conn(tlsConn)
 	} else {
 		logs.Debug("匹配到 c *Client == nil 或者 c.option.TLSConfig == nil 的情况  ")
-		logs.Debug("c *Client: %+v,  c.option.TLSConfig: %+v", c, c.option.TLSConfig)
-		logs.Debug("net.DialTimeout 建立client和server的连接, timeout: %+v", c.option.ConnectTimeout)
+		logs.Debugf("c *Client: %+v,  c.option.TLSConfig: %+v", c, c.option.TLSConfig)
+		logs.Debugf("net.DialTimeout 建立client和server的连接, timeout: %+v", c.option.ConnectTimeout)
 		conn, err = net.DialTimeout(network, address, c.option.ConnectTimeout)
 	}
 

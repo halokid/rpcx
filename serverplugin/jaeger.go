@@ -42,8 +42,8 @@ func TraceInit(svc string, atAddr string) (opentracing.Tracer, io.Closer) {
 func GenSpanWhCtx(ctx context.Context, operationName string) (opentracing.Span, context.Context, error) {
   // todo: share.ReqMetaDataKey is a const varible, just set the key name
   md := ctx.Value(share.ReqMetaDataKey)       // share.ReqMetaDataKey 固定值 "__req_metadata"  可自定义
- //logs.Debug("share ReqMetaDataKey ------ %+v\n", share.ReqMetaDataKey)
-  logs.Debug("GenSpanWhCtx md ------ %+v\n", md)
+ //logs.Debugf("share ReqMetaDataKey ------ %+v\n", share.ReqMetaDataKey)
+  logs.Debugf("GenSpanWhCtx md ------ %+v\n", md)
   var span opentracing.Span
 
   // todo: get the tracer your declare in your service
@@ -53,7 +53,7 @@ func GenSpanWhCtx(ctx context.Context, operationName string) (opentracing.Span, 
     carrier := opentracing.TextMapCarrier(md.(map[string]string))
     spanContext, err := tracer.Extract(opentracing.TextMap, carrier)
     if err != nil && err != opentracing.ErrSpanContextNotFound {
-      logs.Debug("metadata error %s\n", err)
+      logs.Debugf("metadata error %s\n", err)
       return nil, nil, err
     }
     span = tracer.StartSpan(operationName, ext.RPCServerOption(spanContext))
@@ -62,10 +62,10 @@ func GenSpanWhCtx(ctx context.Context, operationName string) (opentracing.Span, 
   }
 
   metadata := opentracing.TextMapCarrier(make(map[string]string))
-  logs.Debug("GenSpanWhCtx metedata1 --- %+v", metadata)
+  logs.Debugf("GenSpanWhCtx metedata1 --- %+v", metadata)
   // todo: here rewrite the metadata, jaeger will put tracing serialize data in metadata
   err := tracer.Inject(span.Context(), opentracing.TextMap, metadata)
-  logs.Debug("GenSpanWhCtx metedata2 --- %+v", metadata)
+  logs.Debugf("GenSpanWhCtx metedata2 --- %+v", metadata)
   if err != nil {
     return nil, nil, err
   }
@@ -91,7 +91,7 @@ func WrapSpan(ctx context.Context, svcOrtag string, operate string, jaeAddr stri
 
 func wrapSpanInner(ctx context.Context, svcOrtag string, operate string, jaeAddr string, timeSpanStart time.Time) {
   md := ctx.Value(share.ReqMetaDataKey)
-  //logs.Debug("add span md ------- %+v", md)
+  //logs.Debugf("add span md ------- %+v", md)
   //now := time.Now()
   var span opentracing.Span
   if md != nil {
@@ -102,7 +102,7 @@ func wrapSpanInner(ctx context.Context, svcOrtag string, operate string, jaeAddr
     carrier := opentracing.TextMapCarrier(md.(map[string]string))
     spanContext, err := tracer.Extract(opentracing.TextMap, carrier)
     if err != nil && err != opentracing.ErrSpanContextNotFound {
-      logs.Debug("wrapSpan metadata error %s\n", err)
+      logs.Debugf("wrapSpan metadata error %s\n", err)
     }
     // todo: cost time operation must behind tracer.StartSpan
     span = tracer.StartSpan(svcOrtag, ext.RPCServerOption(spanContext))
@@ -110,19 +110,19 @@ func wrapSpanInner(ctx context.Context, svcOrtag string, operate string, jaeAddr
     // todo: simuration call java service
     //time.Sleep(800 * time.Millisecond)
     elapsed := time.Since(timeSpanStart)
-    logs.Debug("wrapSpan elapsed ---- %+v", elapsed)
+    logs.Debugf("wrapSpan elapsed ---- %+v", elapsed)
     time.Sleep(elapsed)
 
     metadata := opentracing.TextMapCarrier(make(map[string]string))
-    logs.Debug("wrapSpan %+v metedata1 --- %+v", svcOrtag, metadata)
+    logs.Debugf("wrapSpan %+v metedata1 --- %+v", svcOrtag, metadata)
     // todo: here rewrite the metadata, jaeger will put tracing serialize data in metadata
     err = tracer.Inject(span.Context(), opentracing.TextMap, metadata)
     ColorfulRabbit.CheckError(err, "----- tracer Inject error")
-    logs.Debug("wrapSpan %+v metedata2 --- %+v", svcOrtag, metadata)
+    logs.Debugf("wrapSpan %+v metedata2 --- %+v", svcOrtag, metadata)
     //span.Finish()
   } else {
     span = opentracing.StartSpan(operate)
-    logs.Debug("wrapSpan md is nil span ---- %+v", span)
+    logs.Debugf("wrapSpan md is nil span ---- %+v", span)
   }
   span.Finish()
 }
@@ -141,7 +141,7 @@ func GenTracSpan(ctx context.Context, svcOrTag string, subOperate string,
     carrier := opentracing.TextMapCarrier(md.(map[string]string))
     spanContext, err := tracer.Extract(opentracing.TextMap, carrier)
     if err != nil && err != opentracing.ErrSpanContextNotFound {
-      logs.Debug("wrapSpan metadata error %s\n", err)
+      logs.Debugf("wrapSpan metadata error %s\n", err)
     }
     // todo: cost time operation must behind tracer.StartSpan
     span = tracer.StartSpan(subOperate, ext.RPCServerOption(spanContext))
@@ -151,15 +151,15 @@ func GenTracSpan(ctx context.Context, svcOrTag string, subOperate string,
     time.Sleep(elapse)
 
     metadata := opentracing.TextMapCarrier(make(map[string]string))
-    logs.Debug("wrapSpan %+v metedata1 --- %+v", svcOrTag, metadata)
+    logs.Debugf("wrapSpan %+v metedata1 --- %+v", svcOrTag, metadata)
     // todo: here rewrite the metadata, jaeger will put tracing serialize data in metadata
     err = tracer.Inject(span.Context(), opentracing.TextMap, metadata)
     ColorfulRabbit.CheckError(err, "----- tracer Inject error")
-    logs.Debug("wrapSpan %+v metedata2 --- %+v", svcOrTag, metadata)
+    logs.Debugf("wrapSpan %+v metedata2 --- %+v", svcOrTag, metadata)
     //span.Finish()
   } else {
     span = opentracing.StartSpan(subOperate)
-    logs.Debug("wrapSpan md is nil span ---- %+v", span)
+    logs.Debugf("wrapSpan md is nil span ---- %+v", span)
   }
   span.Finish()
 }

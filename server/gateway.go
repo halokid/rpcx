@@ -196,7 +196,7 @@ func (s *Server) handleGatewayRequest(w http.ResponseWriter, r *http.Request, pa
 		meta.Add(k, v)
 	}
 	wh.Set(XMeta, meta.Encode())
-	logs.Debug("wh ---- %+v", wh);
+	logs.Debugf("wh ---- %+v", wh);
 	w.Write(res.Payload)
 	s.Plugins.DoPostWriteResponse(newCtx, req, res, err)
 }

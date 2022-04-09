@@ -211,7 +211,7 @@ func (c *OneClient) SendRaw(ctx context.Context, r *protocol.Message) (map[strin
 		}
 	}
 
-	logs.Debug("xclient 1111 ------ %+v", xclient)
+	logs.Debugf("xclient 1111 ------ %+v", xclient)
 	return xclient.SendRaw(ctx, r)
 }
 

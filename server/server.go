@@ -107,7 +107,7 @@ func NewServer(options ...OptionFn) *Server {
 		op(s)
 	}
 
-	logs.Debug("Server default options 1 ------- %+v", s.options)
+	logs.Debugf("Server default options 1 ------- %+v", s.options)
 	return s
 }
 
@@ -172,7 +172,7 @@ func (s *Server) startShutdownListener() {
 
 	// todo: 这个函数的作用是注册一些 捕获系统信号的处理逻辑， 但是默认是没有注册到任何逻辑封装的
 	// 监听服务端是否shutdown, 假如shutdown则启动stop()， stop()会delete服务注册数据
-	logs.Debug("s.onShutdown捕获系统信号的处理逻辑封装 ---------------- %+v", s.onShutdown)
+	logs.Debugf("s.onShutdown捕获系统信号的处理逻辑封装 ---------------- %+v", s.onShutdown)
 	go func(s *Server) {
 		// 捕捉进程终止的信号
 		logs.Debug("server pid:", os.Getpid())
@@ -208,9 +208,9 @@ func (s *Server) Serve(network, address string) (err error) {
 	// try to start gateway
 	// todo: 这个成功启动后，服务端可同时支持rpc和http， 同一个网络端口，其中http支持有两种
 	// todo: 1. JsonRPC2处理,  2. httprouter路由处理访问
-	logs.Debug("s --- %+v", s)
+	logs.Debugf("s --- %+v", s)
 	ln = s.startGateway(network, ln)
-	logs.Debug("Server default options 2 ------- %+v", s.options)
+	logs.Debugf("Server default options 2 ------- %+v", s.options)
 	return s.serveListener(ln)
 }
 
@@ -366,7 +366,7 @@ func (s *Server) serveConn(conn net.Conn) {
 	
 		// todo: 根据rpcx的协议格式来decode读取到的数据
 		req, err := s.readRequest(ctx, r)
-		logs.Debug("req: %+v, err: %+v", req, err)
+		logs.Debugf("req: %+v, err: %+v", req, err)
 		
 		if err != nil {
 			if err == io.EOF {
@@ -391,7 +391,7 @@ func (s *Server) serveConn(conn net.Conn) {
 		}
 
 		if err != nil {
-			logs.Debug("err 1 ---------------- %+v", err)
+			logs.Debugf("err 1 ---------------- %+v", err)
 			if !req.IsOneway() {
 				res := req.Clone()
 				res.SetMessageType(protocol.Response)
@@ -420,14 +420,14 @@ func (s *Server) serveConn(conn net.Conn) {
 		// todo: 服务端处理客户端数据的gor
 		go func() {
 			logs.Debug("server handle go func ----------------")
-			logs.Debug("req 1: %+v ==> %+v ==> %+v \n <===== server handle =====>\n\n", time.Now(), req, string(req.Payload[:]))
+			logs.Debugf("req 1: %+v ==> %+v ==> %+v \n <===== server handle =====>\n\n", time.Now(), req, string(req.Payload[:]))
 			atomic.AddInt32(&s.handlerMsgNum, 1)
 			defer atomic.AddInt32(&s.handlerMsgNum, -1)
 
 			if req.IsHeartbeat() {
 				req.SetMessageType(protocol.Response)
 				data := req.Encode()
-				logs.Debug("isHeartbeat data: %+v", data)
+				logs.Debugf("isHeartbeat data: %+v", data)
 				conn.Write(data)
 				//conn.Write([]byte("xxxxxx"))		// fixme: just my test
 				return
@@ -444,7 +444,7 @@ func (s *Server) serveConn(conn net.Conn) {
 			// todo: 在这个方法里会调用序列化配适器来处理数据
 			res, err := s.handleRequest(newCtx, req)   // todo: 这里调用实际的服务方法， 服务和方法的逻辑是在服务端执行的，并返回给客户端
 			//logs.Debug("No Heartbeat res: %+v, res.Payload: %+v, err: %+v", res, string(res.Payload[:]), err)
-			logs.Debug("No Heartbeat res, res.Payload: %+v, err: %+v", string(res.Payload[:]), err)
+			logs.Debugf("No Heartbeat res, res.Payload: %+v, err: %+v", string(res.Payload[:]), err)
 
 			if err != nil {
 				logs.Warnf("rpcx: failed to handle request: %v", err)
@@ -469,7 +469,7 @@ func (s *Server) serveConn(conn net.Conn) {
 					res.SetCompressType(req.CompressType())
 				}
 				data := res.Encode()
-				logs.Debug("No Heartbeat data: %+v", string(data[:]))
+				logs.Debugf("No Heartbeat data: %+v", string(data[:]))
 				//logx.Printf("No Heartbeat data: %+v", string(data[:]))
 				conn.Write(data)			// todo: res就是在服务端执行的结果，这里是把结果写回给客户端， 假如注释，client就会一直阻塞在监听服务端的返回
 				//res.WriteTo(conn)
@@ -503,7 +503,7 @@ func (s *Server) readRequest(ctx context.Context, r io.Reader) (req *protocol.Me
 	// pool req?
 	// todo: sync.Pool 重用 protocol Message结构体
 	req = protocol.GetPooledMsg()
-	logs.Debug("readRequest req原本是一个空结构体 -------------- %+v", req)
+	logs.Debugf("readRequest req原本是一个空结构体 -------------- %+v", req)
 	err = req.Decode(r)
 	if err == io.EOF {
 		return req, err
@@ -551,7 +551,7 @@ func (s *Server) handleRequest(ctx context.Context, req *protocol.Message) (res 
 
 	// todo: 获取序列化配适器
 	codec := share.Codecs[req.SerializeType()]
-	logs.Debug("请求数据用得codec类型--------- %+v", req.SerializeType())
+	logs.Debugf("请求数据用得codec类型--------- %+v", req.SerializeType())
 	if codec == nil {
 		err = fmt.Errorf("can not find codec for %d", req.SerializeType())
 		return handleError(res, err)

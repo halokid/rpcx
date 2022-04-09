@@ -228,13 +228,13 @@ func (client *Client) Go(ctx context.Context, servicePath, serviceMethod string,
 
   call.Args = args
   call.Reply = reply      // todo: 这里已经初始化了reply的内存
-  logs.Debug("call.Reply 1 -------------- %+v", call.Reply)
+  logs.Debugf("call.Reply 1 -------------- %+v", call.Reply)
 
   if done == nil {
-    logs.Debug("赋值给call.Doone 的 done 为空 ---- %+v", &done)
+    logs.Debugf("赋值给call.Doone 的 done 为空 ---- %+v", &done)
     done = make(chan *Call, 10) // buffered.
   } else {
-    logs.Debug("赋值给call.Doone 的 done 不为空 ------- %+v", &done)
+    logs.Debugf("赋值给call.Doone 的 done 不为空 ------- %+v", &done)
     // If caller passes done != nil, it must arrange that
     // done has enough buffer for the number of simultaneous
     // RPCs that will be using that channel. If the channel
@@ -380,10 +380,10 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
 
   // fixme: done的channel长度只有10， 可能这里是一个性能瓶颈
   done := make(chan *Call, 10)
-  //logs.Debugf("done 1 ----------------- %+v", done)
+  //logs.Debugff("done 1 ----------------- %+v", done)
   call.Done = done          // todo： 某个gor改变call.Done 从而改变done, 可能是Go函数?
-  //logs.Debugf("call.Done 1 ----------------- %+v", call.Done)
-  //logs.Debugf("done 2 ----------------- %+v", done)
+  //logs.Debugff("call.Done 1 ----------------- %+v", call.Done)
+  //logs.Debugff("done 2 ----------------- %+v", done)
 
   // todo: 转化XMessageIDVal的值
   seq := r.Seq()
@@ -394,15 +394,15 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
     client.pending = make(map[uint64]*Call)
   }
   client.pending[seq] = call        // todo: 通过这里传入call， 有协程在监听pending，然后改变call的状态
-  //logs.Debugf("done 3 ----------------- %+v", done)
+  //logs.Debugff("done 3 ----------------- %+v", done)
   client.mutex.Unlock()
 
   // todo: 这里是压缩， 不是用序列化方法， 假如采用加密方式， Encode 会加密请求的数据
   data := r.Encode() // 请求的所有数据转化为[]byte
   _, err := client.Conn.Write(data)
   //logs.Debug("client.Conn.Write err -----------------", err)
-  //logs.Debugf("done 4 ----------------- %+v", done)
-  //logs.Debugf("call.Done 2 ----------------- %+v", call.Done)
+  //logs.Debugff("done 4 ----------------- %+v", done)
+  //logs.Debugff("call.Done 2 ----------------- %+v", call.Done)
 
   if err != nil {
     logs.Info("client.Conn.Write(data) err -------", err)
@@ -447,7 +447,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
 
   case call := <-done:        // todo: 写入done channel的就是这个call请求本身
     logs.Info("---@@@------- <-done --------@@@--- %+v", done)
-    //logs.Debugf("select call := <-done  %+v ----------------", call)
+    //logs.Debugff("select call := <-done  %+v ----------------", call)
     err = call.Error
     m = call.Metadata
     logs.Info("Client.SendRaw 中得到的 m ----------- %+v, %+v", len(m), m)

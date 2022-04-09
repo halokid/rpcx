@@ -158,7 +158,7 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 
 	// todo: 定义servers， 修复相似服务名bug在这里
 	client.servers = servers
-	logs.Debug("NewXClient建立初次获取client.servers --------------- %+v", client.servers)
+	logs.Debugf("NewXClient建立初次获取client.servers --------------- %+v", client.servers)
 	
 	// 检查第一个key属于什么typ
 	//serCk := servers[kCk]
@@ -199,7 +199,7 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 
 	// todo: discovery.WatchService() 返回的 ch 是一个 []*KVPair 指针
 	ch := client.discovery.WatchService()
-	logs.Debug("观察svc变化 ch ----------- %+v", ch)
+	logs.Debugf("观察svc变化 ch ----------- %+v", ch)
 	if ch != nil {
 		logs.Debug("--@@@----守护监听注册中心svc:", servicePath, "的变化----@@@--")
 		client.ch = ch
@@ -214,7 +214,7 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 // generate the node is reverse proxy or not
 func genIsReverseProxy(client *xClient, servers map[string]string) error {
 	for k := range servers {
-		logs.Debug("计算是否为反代服务-genIsReverseProxy server ------- %+v", k)
+		logs.Debugf("计算是否为反代服务-genIsReverseProxy server ------- %+v", k)
 		// todo: if the service is http, then reverser proxy the service
 		if strings.Contains(k, "http") {
 			client.isReverseProxy = true
@@ -252,7 +252,7 @@ func genNotGoSvc(client *xClient, servers map[string]string) error {
 		}
 		break
 	}
-	logs.Debug("client genNotGoSvc -------------- %+v", client)
+	logs.Debugf("client genNotGoSvc -------------- %+v", client)
 	return nil
 }
 
@@ -324,11 +324,11 @@ func (c *xClient) Auth(auth string) {
 // todo: just update c.servers, not watch register nodes data change here.
 // todo: watch the nodes change, check node is proxy or not, and change the isReverseProxy property
 func (c *xClient) watch(ch chan []*KVPair) {
-	logs.Debug("len ch --------------- %+v", len(ch))
+	logs.Debugf("len ch --------------- %+v", len(ch))
 	for pairs := range ch {
 
 		for k, v := range pairs {
-			logs.Debug("pairs k, v ------- %+v, %+v", k, v)
+			logs.Debugf("pairs k, v ------- %+v, %+v", k, v)
 		}
 
 		servers := make(map[string]string, len(pairs))
@@ -341,9 +341,9 @@ func (c *xClient) watch(ch chan []*KVPair) {
 
 		//isReverseProxyTag := false
 		for k, v := range servers {
-			logs.Debug("servers k, v ------- %+v, %+v", k, v)
+			logs.Debugf("servers k, v ------- %+v, %+v", k, v)
 			if !c.isReverseProxy && checkIsReverseProxy(v) {
-				logs.Debug("--- change service [%s] isReverseProxy to true ---", c.servicePath)
+				logs.Debugf("--- change service [%s] isReverseProxy to true ---", c.servicePath)
 				c.isReverseProxy = true
 			}
 		}
@@ -425,7 +425,7 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 		if !client.IsClosing() && !client.IsShutdown() {
 			return client, nil			// todo: 命中cacheClient则返回
 		}
-		logs.Debug("client IsClosing() or IsShutdown(), client的k和状态 --- k: %+v," +
+		logs.Debugf("client IsClosing() or IsShutdown(), client的k和状态 --- k: %+v," +
 			" IsClosing(): %+v,  IsShutdown(): %+v", k, client.IsClosing(), client.IsShutdown())
 		delete(c.cachedClient, k)
 		client.Close()
@@ -454,7 +454,7 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 			// todo:  cachedClient有没有必要？cacheClient是一个以 service node的 address为key， client本身为value的 map，意思就是当某一个client要连某个service node 的时候，先在这个cacheCLient取client，这个在cache里面的client已经建立了客户端到服务端的conn， 所以不用再次建立这个conn，提高效率
 			// todo: 关键性能点在于，当client 并发请求某 service node的时候， 这个cacheClient 里的client一直input一直在call service node，这里有一个for循环，不断的处理请求，当并发的时候，要for循环里面有swicth，就是当 协程重复执行 input()， 这个switch逻辑一会一直监听执行， 就是client就不会调用 conn.close()，这样就可以一直用已经建立了conn的client，提高性能， 当并发结束，则跳出switch, 按逻辑执行了 client.conn.close() 关闭客户端到服务端的连接.
 			err := client.Connect(network, addr)
-			logs.Debug("完成client.Connect动作, err -------------- %+v", err)
+			logs.Debugf("完成client.Connect动作, err -------------- %+v", err)
 			if err != nil {
 				if breaker != nil {
 					breaker.(Breaker).Fail()
@@ -589,7 +589,7 @@ func (c *xClient) Call(ctx context.Context, serviceMethod string, args interface
 		retries := c.option.Retries
 		for retries >= 0 {
 			retries--
-			logs.Debug("retries ------------ %+v ", retries)
+			logs.Debugf("retries ------------ %+v ", retries)
 
 			if client != nil {
 				err = c.wrapCall(ctx, client, serviceMethod, args, reply)
@@ -754,9 +754,9 @@ func uncoverError(err error) bool {
 }
 
 func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]string, []byte, error) {
-	logs.Debug("SendRaw c.servers ------------------- %+v", c.servers)
+	logs.Debugf("SendRaw c.servers ------------------- %+v", c.servers)
 	if len(c.servers) == 0 {
-		logs.Debug("找不到服务节点信息 svc: %+v, md: %+v", r.ServicePath, r.ServiceMethod)
+		logs.Debugf("找不到服务节点信息 svc: %+v, md: %+v", r.ServicePath, r.ServiceMethod)
 		errMsg := fmt.Sprintf(`{"msg": "找不到服务节点信息 svc: %+v, md: %+v"}`, r.ServicePath, r.ServiceMethod)
 		return nil, []byte(errMsg), errors.New(errMsg)
 	}

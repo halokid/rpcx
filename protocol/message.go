@@ -412,7 +412,7 @@ func (m *Message) Decode(r io.Reader) error {
 
 	//logs.Debugf("res.data 2 ---------------------  %+v", m)
 	// parse header
-	logs.Debug("io.ReadFull读取前m.Header, 已经定义协议头了 ---------- %+v", m.Header)
+	logs.Debugf("io.ReadFull读取前m.Header, 已经定义协议头了 ---------- %+v", m.Header)
 	_, err := io.ReadFull(r, m.Header[:1])		// todo: 读取协议头
 	if err != nil {
 		return err
@@ -425,18 +425,18 @@ func (m *Message) Decode(r io.Reader) error {
 	if err != nil {
 		return err
 	}
-	logs.Debug("io.ReadFull读取后m.Header ---------- %+v", m.Header)
+	logs.Debugf("io.ReadFull读取后m.Header ---------- %+v", m.Header)
 
 	//total
 	// todo: 读取整个 m.Header 的数据, poolUint32Data 就是创建一个 [4][]byte 的数据， 一共32位
 	lenData := poolUint32Data.Get().(*[]byte)
-	logs.Debug("io.ReadFull读取前lenData ---------- %+v, %+v", lenData, &lenData)
+	logs.Debugf("io.ReadFull读取前lenData ---------- %+v, %+v", lenData, &lenData)
 	_, err = io.ReadFull(r, *lenData)		// todo: 读取服务数据总长度
 	if err != nil {
 		poolUint32Data.Put(lenData)
 		return err
 	}
-	logs.Debug("io.ReadFull读取后lenData ---------- %+v, %+v", lenData, &lenData)
+	logs.Debugf("io.ReadFull读取后lenData ---------- %+v, %+v", lenData, &lenData)
 	l := binary.BigEndian.Uint32(*lenData)		// todo: 读取到数据总长度之后， 用大端位的方式解码出来
 	poolUint32Data.Put(lenData)
 

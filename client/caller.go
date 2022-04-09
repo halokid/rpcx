@@ -43,7 +43,7 @@ func (c *caller) GetSvcTyp() string {
 func (c *caller) Call(notGoServers map[string]string, svc string, call string, bodyTran map[string]interface{}, psKey []string) ([]byte, error) {
 
   nodeAddr := c.selectNode(notGoServers)
-  logs.Debug("nodeAddr --------- %+v", nodeAddr)
+  logs.Debugf("nodeAddr --------- %+v", nodeAddr)
   b, err := c.invoke(nodeAddr, svc, call, bodyTran, psKey)
   return b, err
 }
