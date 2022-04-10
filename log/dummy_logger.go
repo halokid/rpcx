@@ -2,6 +2,12 @@ package log
 
 type dummyLogger struct{}
 
+func (l *dummyLogger) Trace(v ...interface{}) {
+}
+
+func (l *dummyLogger) Tracef(format string, v ...interface{}) {
+}
+
 func (l *dummyLogger) Debug(v ...interface{}) {
 }
 

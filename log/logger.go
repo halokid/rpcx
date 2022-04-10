@@ -12,10 +12,11 @@ const (
 type LogLevel int
 
 const (
-	InfoLevel LogLevel = iota
-	DebugLevel
+	ErrorLevel LogLevel = iota
 	WarnLevel
-	ErrorLevel
+	InfoLevel
+	DebugLevel
+	TraceLevel
 )
 
 // todo: define the logger adapter
@@ -24,7 +25,7 @@ var LogLevelEnv LogLevel 		// default is info
 
 func CheckLogLevel(logLevel LogLevel) bool {
 	//if LogLevelEnv <= logLevel {
-	if logLevel >= LogLevelEnv {
+	if logLevel <= LogLevelEnv {
 		return true
 	}
 	return false
@@ -34,14 +35,16 @@ func CheckLogLevel(logLevel LogLevel) bool {
 func init() {
 	logLevel := os.Getenv("RPCX_PLUS_LOG")
 	switch logLevel {
+	case "error":
+		LogLevelEnv = ErrorLevel
+	case "warn":
+		LogLevelEnv = WarnLevel
 	case "info":
 		LogLevelEnv = InfoLevel
 	case "debug":
 		LogLevelEnv = DebugLevel
-	case "warn":
-		LogLevelEnv = WarnLevel
-	case "error":
-		LogLevelEnv = ErrorLevel
+	case "trace":
+		LogLevelEnv = TraceLevel
 	default:
 		LogLevelEnv = InfoLevel
 	}
@@ -49,17 +52,20 @@ func init() {
 }
 
 type Logger interface {
-	Debug(v ...interface{})
-	Debugf(format string, v ...interface{})
-
-	Info(v ...interface{})
-	Infof(format string, v ...interface{})
+	Error(v ...interface{})
+	Errorf(format string, v ...interface{})
 
 	Warn(v ...interface{})
 	Warnf(format string, v ...interface{})
 
-	Error(v ...interface{})
-	Errorf(format string, v ...interface{})
+	Info(v ...interface{})
+	Infof(format string, v ...interface{})
+
+	Debug(v ...interface{})
+	Debugf(format string, v ...interface{})
+
+	Trace(v ...interface{})
+	Tracef(format string, v ...interface{})
 
 	Fatal(v ...interface{})
 	Fatalf(format string, v ...interface{})
