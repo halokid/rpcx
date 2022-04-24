@@ -21,6 +21,11 @@ const (
 
 // todo: define the logger adapter
 var l Logger = &defaultLogger{log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile)}
+
+// todo: if some program has defined the logger, use this external to instead
+var Logx Logger = &defaultLogger{log.New(os.Stdout, "",
+	log.LstdFlags|log.Lshortfile)}
+
 var LogLevelEnv LogLevel 		// default is info
 
 func CheckLogLevel(logLevel LogLevel) bool {
@@ -46,9 +51,10 @@ func init() {
 	case "trace":
 		LogLevelEnv = TraceLevel
 	default:
+		logLevel = "info"
 		LogLevelEnv = InfoLevel
 	}
-	log.Println("LogLevelEnv -->>>", LogLevelEnv)
+	log.Printf("LogLevelEnv -->>> %d, %s", LogLevelEnv, logLevel)
 }
 
 type Logger interface {

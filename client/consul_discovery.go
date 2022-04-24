@@ -197,7 +197,7 @@ func (d *ConsulDiscovery) watch() {
 
     prefix := d.basePath + "/"
 
-    logs.Info("----------- 执行 go d.watch() -> 完成WatchTree ------------")
+    logs.Debug("----------- 执行 go d.watch() -> 完成WatchTree ------------")
 
    // fixme:
   // todo: 读取节点注册信息的变化， 目前好像只能读取到增加的变化， 不能读取到减少的变化？
@@ -209,13 +209,13 @@ func (d *ConsulDiscovery) watch() {
         return
 
       case ps := <-c:
-        logs.Info("----------- 执行 go d.watch() -> WatchTree -> 监控Tree变化", d.basePath, "------")
+        logs.Debug("----------- 执行 go d.watch() -> WatchTree -> 监控Tree变化", d.basePath, "------")
         if ps == nil {
           logs.Errorf("ps := <-c，读取到 ps == nil，表示注册中心watch读取到为nil，跳出readChanges")
           break readChanges
         }
         var pairs []*KVPair // latest servers
-        logs.Info("=== WatchTree更新节点数据", d.basePath, "===")
+        logs.Debug("=== WatchTree更新节点数据", d.basePath, "===")
         for i, p := range ps {
           pKeySp := strings.Split(p.Key, "/")
           if len(pKeySp) > 0 && (pKeySp[0]+"/"+pKeySp[1] != d.basePath) {
@@ -226,7 +226,7 @@ func (d *ConsulDiscovery) watch() {
           if d.filter != nil && !d.filter(pair) {   // todo: 过滤掉一些已经禁止的节点
             continue
           }
-          logs.Info("节点 %+v -------------- %+v, 节点key的val为: %+v",
+          logs.Debug("节点 %+v -------------- %+v, 节点key的val为: %+v",
             i, p.Key, string(p.Value))
           pairs = append(pairs, pair) // 一次loading所有的服务键值对(pairs)
         }
