@@ -24,6 +24,18 @@ func (l *defaultLogger) Errorf(format string, v ...interface{}) {
 	}
 }
 
+func (l *defaultLogger) ErrorCheck(err error, v ...interface{}) {
+	if CheckLogLevel(ErrorLevel) && err != nil {
+		l.Output(calldepth, header(color.RedString("ERROR"), fmt.Sprint(v...)))
+	}
+}
+
+func (l *defaultLogger) ErrorfCheck(err error, format string, v ...interface{}) {
+	if CheckLogLevel(ErrorLevel) && err != nil {
+		l.Output(calldepth, header(color.RedString("ERROR"), fmt.Sprintf(format, v...)))
+	}
+}
+
 func (l *defaultLogger) Warn(v ...interface{}) {
 	if CheckLogLevel(WarnLevel) {
 		l.Output(calldepth, header(color.YellowString("WARN "), fmt.Sprint(v...)))

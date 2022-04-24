@@ -61,6 +61,9 @@ type Logger interface {
 	Error(v ...interface{})
 	Errorf(format string, v ...interface{})
 
+	ErrorCheck(err error, v ...interface{})
+	ErrorfCheck(err error, format string, v ...interface{})
+
 	Warn(v ...interface{})
 	Warnf(format string, v ...interface{})
 
@@ -117,6 +120,13 @@ func Error(v ...interface{}) {
 	l.Error(v...)
 }
 func Errorf(format string, v ...interface{}) {
+	l.Errorf(format, v...)
+}
+
+func ErrorCheck(err error, v ...interface{}) {
+	l.Error(v...)
+}
+func ErrorfCheck(err error, format string, v ...interface{}) {
 	l.Errorf(format, v...)
 }
 

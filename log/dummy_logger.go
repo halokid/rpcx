@@ -32,6 +32,12 @@ func (l *dummyLogger) Error(v ...interface{}) {
 func (l *dummyLogger) Errorf(format string, v ...interface{}) {
 }
 
+func (l *dummyLogger) ErrorCheck(err error, v ...interface{}) {
+}
+
+func (l *dummyLogger) ErrorfCheck(err error, format string, v ...interface{}) {
+}
+
 func (l *dummyLogger) Fatal(v ...interface{}) {
 }
 
