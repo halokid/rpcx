@@ -124,10 +124,10 @@ func Errorf(format string, v ...interface{}) {
 }
 
 func ErrorCheck(err error, v ...interface{}) {
-	l.ErrorCheck(v...)
+	l.ErrorCheck(err, v...)
 }
 func ErrorfCheck(err error, format string, v ...interface{}) {
-	l.ErrorfCheck(format, v...)
+	l.ErrorfCheck(err, format, v...)
 }
 
 func Fatal(v ...interface{}) {
