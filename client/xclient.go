@@ -857,7 +857,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 					//logs.Info("payload ----------------", string(payload))
 					return m, payload, nil
 				} else {
-					logs.Info("[ERROR] ---------------- %+v", err.Error())
+					logs.Errorf("[ERROR] ---------------- %+v", err.Error())
 				}
 				
 				if _, ok := err.(ServiceError); ok {
