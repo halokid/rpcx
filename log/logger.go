@@ -20,10 +20,13 @@ const (
 )
 
 // todo: define the logger adapter
-var l Logger = &defaultLogger{log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile)}
+//var l Logger = &defaultLogger{log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile)}
+var l Logger = &LineColorLogger{log.New(os.Stdout, "", log.LstdFlags|log.Lshortfile)}
 
 // todo: if some program has defined the logger, use this external to instead
-var Logx Logger = &defaultLogger{log.New(os.Stdout, "",
+//var Logx Logger = &defaultLogger{log.New(os.Stdout, "",
+//	log.LstdFlags|log.Lshortfile)}
+var Logx Logger = &LineColorLogger{log.New(os.Stdout, "",
 	log.LstdFlags|log.Lshortfile)}
 
 var LogLevelEnv LogLevel 		// default is info
