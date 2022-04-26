@@ -48,13 +48,15 @@ func (l *LineColorLogger) Warnf(format string, v ...interface{}) {
 
 func (l *LineColorLogger) Info(v ...interface{}) {
 	if CheckLogLevel(InfoLevel) {
-		l.Output(calldepth, lineColorHeader("\033[0;32m", "INFO ", fmt.Sprint(v...)))
+		//l.Output(calldepth, lineColorHeader("\033[0;32m", "INFO ", fmt.Sprint(v...)))
+		l.Output(calldepth, lineColorHeader("\033[1;32m", "INFO ", fmt.Sprint(v...)))
 	}
 }
 
 func (l *LineColorLogger) Infof(format string, v ...interface{}) {
 	if CheckLogLevel(InfoLevel) {
-		l.Output(calldepth, lineColorHeader("\033[0;32m", "INFO ", fmt.Sprintf(format, v...)))
+		//l.Output(calldepth, lineColorHeader("\033[0;32m", "INFO ", fmt.Sprintf(format, v...)))
+		l.Output(calldepth, lineColorHeader("\033[1;32m", "INFO ", fmt.Sprintf(format, v...)))
 	}
 }
 
