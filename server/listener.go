@@ -13,6 +13,7 @@ func init() {
 	makeListeners["tcp4"] = tcpMakeListener("tcp4")
 	makeListeners["tcp6"] = tcpMakeListener("tcp6")
 	makeListeners["http"] = tcpMakeListener("tcp")
+	makeListeners["http2"] = tcpMakeListener("tcp")
 }
 
 // RegisterMakeListener registers a MakeListener for network.

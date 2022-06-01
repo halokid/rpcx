@@ -19,6 +19,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"encoding/json"
 
 	ex "github.com/halokid/rpcx-plus/errors"
 	"github.com/halokid/rpcx-plus/protocol"
@@ -70,6 +71,8 @@ type XClient interface {
 
 	GetReverseProxy()	bool
 	SelectNode(ctx context.Context, servicePath, serviceMethod string, args interface{}) string
+
+	Http2Call(ctx context.Context, serviceMethod string, args interface{}, reply interface{}) error
 }
 
 // KVPair contains a key and a string.
@@ -557,9 +560,27 @@ func (c *xClient) Go(ctx context.Context, serviceMethod string, args interface{}
 	return client.Go(ctx, c.servicePath, serviceMethod, args, reply, done), nil
 }
 
+func (c *xClient) Http2Call(ctx context.Context, serviceMethod string, args interface{},
+	reply interface{}) error {
+	logs.Debugf("=== call Http2Call ===")
+	// todo: for test ---------------------------
+	data := `{"Greet": "hello-world"}`
+	err := json.Unmarshal([]byte(data), reply)
+	logs.Debugf("err: %+v, reply -->>> %+v", err, reply)
+	return nil
+	// -----------------------------------------
+
+	//return nil
+}
+
 // Call invokes the named function, waits for it to complete, and returns its error status.
 // It handles errors base on FailMode.
 func (c *xClient) Call(ctx context.Context, serviceMethod string, args interface{}, reply interface{}) error {
+	// if http2
+	if c.option.Http2 {
+		return c.Http2Call(ctx, serviceMethod, args, reply)
+	}
+
 	if c.isShutdown {
 		return ErrXClientShutdown
 	}

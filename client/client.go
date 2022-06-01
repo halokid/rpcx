@@ -156,6 +156,8 @@ type Option struct {
 
   Heartbeat         bool
   HeartbeatInterval time.Duration
+
+  Http2             bool
 }
 
 // Call represents an active RPC.
