@@ -5,18 +5,25 @@ import (
   "bytes"
   "context"
   "crypto/tls"
+  "encoding/json"
   "errors"
+  "fmt"
   logs "github.com/halokid/rpcx-plus/log"
   "github.com/halokid/rpcx-plus/protocol"
   "github.com/halokid/rpcx-plus/share"
   "github.com/opentracing/opentracing-go"
   "github.com/rubyist/circuitbreaker"
   "go.opencensus.io/trace"
+  "golang.org/x/net/http2"
   "io"
+  "io/ioutil"
+  "log"
   "net"
+  "net/http"
   "net/url"
   "reflect"
   "strconv"
+  "strings"
   "sync"
   "time"
   "unsafe"
@@ -94,6 +101,9 @@ type RPCClient interface {
 
   IsClosing() bool
   IsShutdown() bool
+
+  SetHttp2SvcNode(k string) error
+  Http2Call(ctx context.Context, servicePath, serviceMethod string, args interface{}, reply interface{}) error
 }
 
 // Client represents a RPC client.
@@ -114,6 +124,8 @@ type Client struct {
   Plugins PluginContainer
 
   ServerMessageChan chan<- *protocol.Message
+
+  Http2SvcNode string
 }
 
 // NewClient returns a new Client with the option.
@@ -205,6 +217,64 @@ func (client *Client) IsShutdown() bool {
   client.mutex.Lock()
   defer client.mutex.Unlock()
   return client.shutdown
+}
+
+func (client *Client) SetHttp2SvcNode(k string) error {
+  svcNode := strings.Split(k, "@")
+  if len(svcNode) > 1 {
+    client.Http2SvcNode = svcNode[1]
+  } else {
+    client.Http2SvcNode = k
+  }
+  return nil
+}
+
+func (client *Client) Http2Call(ctx context.Context, servicePath, serviceMethod string, args interface{},
+  reply interface{}) error {
+  logs.Debugf("=== call Http2Service ===")
+  /*
+  // todo: for test ---------------------------
+  data := `{"Greet": "hello-world"}`
+  err := json.Unmarshal([]byte(data), reply)
+  logs.Debugf("err: %+v, reply -->>> %+v", err, reply)
+  return nil
+  // -----------------------------------------
+  */
+
+  clientx := http.Client{
+    Transport:     &http2.Transport{
+      AllowHTTP:  true,
+      DialTLS: func(network, addr string, cfg *tls.Config) (conn net.Conn, err error) {
+        return net.Dial(network, addr)
+      },
+    },
+  }
+  //url := "http://127.0.0.1:8972"
+  url := fmt.Sprintf("http://%s", client.Http2SvcNode)
+  //payload, err := json.Marshal(map[string]string {
+  //  "name": "halokid",
+  //})
+  payload, err := json.Marshal(args)
+  logs.ErrorfCheck(err, "http2 client serialize payload error, args -->>> %+v", args)
+
+  req, _ := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+  req.Header.Add("X-RPCX-ServicePath", servicePath)
+  req.Header.Add("X-RPCX-ServiceMethod", serviceMethod)
+  req.Header.Add("X-RPCX-SerializeType", "1")
+
+  rsp, _ := clientx.Do(req)
+  log.Printf("http2 RPC response -->>> %+v", rsp)
+  if rsp == nil {
+    logs.Errorf("-->>> http2 service %+v, %+v not response anything",
+      servicePath, client.Http2SvcNode)
+    return nil
+  }
+  defer rsp.Body.Close()
+
+  data, _ := ioutil.ReadAll(rsp.Body)
+  log.Printf("http2 RPC response reply -->>> %+v", string(data))
+  err = json.Unmarshal([]byte(data), reply)
+  return err
 }
 
 // Go invokes the function asynchronously. It returns the Call structure representing
@@ -312,6 +382,11 @@ func (client *Client) injectOpenCensusSpan(ctx context.Context, call *Call) {
 
 // Call invokes the named function, waits for it to complete, and returns its error status.
 func (client *Client) Call(ctx context.Context, servicePath, serviceMethod string, args interface{}, reply interface{}) error {
+  // todo: http2 client call add here
+  if client.option.Http2 {
+    	return client.Http2Call(ctx, servicePath, serviceMethod, args, reply)
+  }
+
   return client.call(ctx, servicePath, serviceMethod, args, reply)
 }
 
@@ -854,7 +929,11 @@ func (client *Client) Close() error {
     }
 
     client.pluginClosed = true
-    err = client.Conn.Close()
+    //err = client.Conn.Close()
+
+    if !client.option.Http2 {
+      err = client.Conn.Close()
+    }
   }
 
   if client.closing || client.shutdown {

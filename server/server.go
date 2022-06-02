@@ -355,7 +355,7 @@ func (s *Server) serveByHTTP2(address string) {
 func (s *Server) serveConn(conn net.Conn) {
 
   defer func() { // todo: 在defer函数捕获recover，获取服务奔溃的信息
-    if err := recover(); err != nil {
+    if err := recover(); err != any(nil) {
       const size = 64 << 10
       buf := make([]byte, size)
       ss := runtime.Stack(buf, false)

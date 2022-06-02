@@ -19,7 +19,7 @@ import (
 	"strings"
 	"sync"
 	"time"
-	"encoding/json"
+	//"encoding/json"
 
 	ex "github.com/halokid/rpcx-plus/errors"
 	"github.com/halokid/rpcx-plus/protocol"
@@ -72,7 +72,7 @@ type XClient interface {
 	GetReverseProxy()	bool
 	SelectNode(ctx context.Context, servicePath, serviceMethod string, args interface{}) string
 
-	Http2Call(ctx context.Context, serviceMethod string, args interface{}, reply interface{}) error
+	//Http2Call(ctx context.Context, serviceMethod string, args interface{}, reply interface{}) error
 }
 
 // KVPair contains a key and a string.
@@ -394,6 +394,7 @@ func (c *xClient) selectClient(ctx context.Context, servicePath, serviceMethod s
 		return "", nil, ErrXClientNoServer
 	}
 	client, err := c.getCachedClient(k)
+	client.SetHttp2SvcNode(k)			// set http2 service node
 	return k, client, err
 }
 
@@ -441,7 +442,9 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 		if network == "inprocess" {
 			client = InprocessClient
 		} else {
-			client = &Client{			// todo: client本来是一个 RPCClient类型, xClient是从这里开始转变为client struct的，所以可以调用 client.conn
+			// todo: client本来是一个 RPCClient类型, xClient是从这里开始转变为client struct
+			// todo: 的，所以可以调用 client.conn
+			client = &Client{
 				option:  c.option,
 				Plugins: c.Plugins,
 			}
@@ -456,7 +459,22 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 
 			// todo:  cachedClient有没有必要？cacheClient是一个以 service node的 address为key， client本身为value的 map，意思就是当某一个client要连某个service node 的时候，先在这个cacheCLient取client，这个在cache里面的client已经建立了客户端到服务端的conn， 所以不用再次建立这个conn，提高效率
 			// todo: 关键性能点在于，当client 并发请求某 service node的时候， 这个cacheClient 里的client一直input一直在call service node，这里有一个for循环，不断的处理请求，当并发的时候，要for循环里面有swicth，就是当 协程重复执行 input()， 这个switch逻辑一会一直监听执行， 就是client就不会调用 conn.close()，这样就可以一直用已经建立了conn的client，提高性能， 当并发结束，则跳出switch, 按逻辑执行了 client.conn.close() 关闭客户端到服务端的连接.
-			err := client.Connect(network, addr)
+			// todo: if use http2, dont need this, dont need `go c.input()`, `go c.heartbeat()` in
+			// todo: client.Connect() func process
+			//err := client.Connect(network, addr)
+
+			///*
+			// todo: ---- for http2 client call ----
+			var err error
+			if c.option.Http2 {
+				logs.Debugf("-->>> run client http2 call, dont need Connect server")
+				err = nil
+			} else {
+				logs.Debugf("-->>> run client normal call, need Connect server")
+				err = client.Connect(network, addr)
+			}
+			//*/
+
 			logs.Debugf("完成client.Connect动作, err -------------- %+v", err)
 			if err != nil {
 				if breaker != nil {
@@ -560,6 +578,7 @@ func (c *xClient) Go(ctx context.Context, serviceMethod string, args interface{}
 	return client.Go(ctx, c.servicePath, serviceMethod, args, reply, done), nil
 }
 
+/*
 func (c *xClient) Http2Call(ctx context.Context, serviceMethod string, args interface{},
 	reply interface{}) error {
 	logs.Debugf("=== call Http2Call ===")
@@ -572,14 +591,15 @@ func (c *xClient) Http2Call(ctx context.Context, serviceMethod string, args inte
 
 	//return nil
 }
+*/
 
 // Call invokes the named function, waits for it to complete, and returns its error status.
 // It handles errors base on FailMode.
 func (c *xClient) Call(ctx context.Context, serviceMethod string, args interface{}, reply interface{}) error {
-	// if http2
-	if c.option.Http2 {
-		return c.Http2Call(ctx, serviceMethod, args, reply)
-	}
+	// fixme:  if call http2 here, then can not use the strategy of exist client functions
+	//if c.option.Http2 {
+	//	return c.Http2Call(ctx, serviceMethod, args, reply)
+	//}
 
 	if c.isShutdown {
 		return ErrXClientShutdown
@@ -597,7 +617,13 @@ func (c *xClient) Call(ctx context.Context, serviceMethod string, args interface
 
 	var err error
 	// todo: xClient在 selectClient中内存初始化为 client
+	// todo: here has connect the server, in the c.selectClient func `c.getCachedClient(k)`
+	// todo: so if use http2, dont need to connect server
+	// todo: the normal TCP model, client has connect server use `k` value in `c.selectClient` func
+	// todo: if we use http2, we should use `k` server node in here? but in here can not use the
+	// todo: exist failMode process, so should be in `c.wrapCall` is better?
 	k, client, err := c.selectClient(ctx, c.servicePath, serviceMethod, args)
+	logs.Debugf("-->>> client selectClient k: %+v, client: %+v, err: %+v", k, client, err)
 	if err != nil {
 		if c.failMode == Failfast {
 			return err
@@ -611,7 +637,6 @@ func (c *xClient) Call(ctx context.Context, serviceMethod string, args interface
 		for retries >= 0 {
 			retries--
 			logs.Debugf("retries ------------ %+v ", retries)
-
 			if client != nil {
 				err = c.wrapCall(ctx, client, serviceMethod, args, reply)
 				if err == nil {
@@ -917,8 +942,14 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 }
 
 func (c *xClient) wrapCall(ctx context.Context, client RPCClient, serviceMethod string, args interface{}, reply interface{}) error {
+	logs.Debugf("wrapCall *xClient -->>> %+v", c)
 	if client == nil {
 		return ErrServerUnavailable
+	}
+
+	// todo: for http2
+	if c.option.Http2 {
+		return client.Http2Call(ctx, c.servicePath, serviceMethod, args, reply)
 	}
 
 	ctx = share.NewContext(ctx)
@@ -1236,7 +1267,7 @@ func (c *xClient) Close() error {
 
 	go func() {
 		defer func() {
-			if r := recover(); r != nil {
+			if r := recover(); r != any(nil) {
 
 			}
 		}()

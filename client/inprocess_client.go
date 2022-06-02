@@ -2,6 +2,7 @@ package client
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"reflect"
@@ -145,6 +146,23 @@ func (client *inprocessClient) IsClosing() bool {
 // IsShutdown always return false.
 func (client *inprocessClient) IsShutdown() bool {
 	return false
+}
+
+func (client *inprocessClient) SetHttp2SvcNode(k string) error {
+	return nil
+}
+
+func (client *inprocessClient) Http2Call(ctx context.Context, servicePath, serviceMethod string, args interface{},
+	reply interface{}) error {
+	logs.Debugf("=== call Http2Call ===")
+	// todo: for test ---------------------------
+	data := `{"Greet": "hello-world"}`
+	err := json.Unmarshal([]byte(data), reply)
+	logs.Debugf("err: %+v, reply -->>> %+v", err, reply)
+	return nil
+	// -----------------------------------------
+
+	//return nil
 }
 
 func (client *inprocessClient) Register(name string, rcvr interface{}, metadata string) (err error) {
