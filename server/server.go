@@ -594,7 +594,7 @@ func (s *Server) handleRequest(ctx context.Context, req *protocol.Message) (res 
 
   // todo: 获取序列化配适器
   codec := share.Codecs[req.SerializeType()]
-  logs.Debugf("请求数据用得codec类型--------- %+v", req.SerializeType())
+  logs.Debugf("请求数据用的codec类型--------- %+v", req.SerializeType())
   if codec == nil {
     err = fmt.Errorf("can not find codec for %d", req.SerializeType())
     return handleError(res, err)

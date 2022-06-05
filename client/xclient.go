@@ -219,7 +219,7 @@ func genIsReverseProxy(client *xClient, servers map[string]string) error {
 	for k := range servers {
 		logs.Debugf("计算是否为反代服务-genIsReverseProxy server ------- %+v", k)
 		// todo: if the service is http, then reverser proxy the service
-		if strings.Contains(k, "http") {
+		if strings.Contains(k, "http") && !strings.Contains(k, "http2") {
 			client.isReverseProxy = true
 			break
 		}
@@ -255,7 +255,7 @@ func genNotGoSvc(client *xClient, servers map[string]string) error {
 		}
 		break
 	}
-	logs.Debugf("client genNotGoSvc -------------- %+v", client)
+	logs.Debugf("xClient after genNotGoSvc -------------- %+v", client)
 	return nil
 }
 
@@ -843,7 +843,8 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 	//logs.Debug("xclient SendRow selectClient -------------")
 	// todo: 根据XClient的数据来生成Client，最后的SendRaw逻辑是由Client调用的
 	// todo: c.selecrClient 触发 getCachedClient 函数, 这个函数调用了 client/connection.go 的 Connect 函数,
-	// todo: 客户端建立给服务端的网络连接
+	// todo: 客户端建立给服务端的网络连接, client.Connect happend here, if use http2, dont need run here
+	// todo: client initizlize here, if the gateway want to call http2 service use Client.Http2Call, should do it here
 	k, client, err := c.selectClient(ctx, r.ServicePath, r.ServiceMethod, r.Payload)
 	//logs.Debug("c.selectClient err ----------", err.(ServiceError), "---", err.Error())
 	logs.Debug("DEBUG halokid 2 ------ ")
@@ -890,7 +891,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 	case Failover:			// todo: 这个是gateway默认采用的失败方式
 		logs.Debug("DEBUG halokid 4 ------ ")
 		retries := c.option.Retries
-		logs.Debug("Failover模式 retries --------- %+v ", retries)
+		logs.Debugf("Failover模式 retries --------- %+v ", retries)
 		for retries >= 0 {
 			retries--
 			logs.Info("Failover模式 client --------- %+v ", client)
@@ -947,7 +948,7 @@ func (c *xClient) wrapCall(ctx context.Context, client RPCClient, serviceMethod 
 		return ErrServerUnavailable
 	}
 
-	// todo: for http2
+	// todo: for http2, dont need to process c.Connect.Write(data)
 	if c.option.Http2 {
 		return client.Http2Call(ctx, c.servicePath, serviceMethod, args, reply)
 	}

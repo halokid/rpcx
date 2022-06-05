@@ -80,9 +80,9 @@ func (client *inprocessClient) Go(ctx context.Context, servicePath, serviceMetho
 // Call calls a service synchronously.
 func (client *inprocessClient) Call(ctx context.Context, servicePath, serviceMethod string, args interface{}, reply interface{}) (err error) {
 	defer func() {
-		if e := recover(); e != nil {
+		if e := recover(); e != any(nil) {
 			var ok bool
-			if err, ok = e.(error); ok {
+			if err, ok = any(e).(error); ok {
 				err = fmt.Errorf("failed to call %s.%s because of %v", servicePath, serviceMethod, err)
 			}
 		}
@@ -163,6 +163,24 @@ func (client *inprocessClient) Http2Call(ctx context.Context, servicePath, servi
 	// -----------------------------------------
 
 	//return nil
+}
+
+func (client *inprocessClient) Http2CallGw(ctx context.Context, servicePath, serviceMethod string, args interface{},
+	reply interface{}) error {
+	logs.Debugf("=== call Http2CallGw ===")
+	// todo: for test ---------------------------
+	data := `{"Greet": "hello-world"}`
+	err := json.Unmarshal([]byte(data), reply)
+	logs.Debugf("err: %+v, reply -->>> %+v", err, reply)
+	return nil
+	// -----------------------------------------
+
+	//return nil
+}
+
+func (client *inprocessClient) Http2CallSendRaw(ctx context.Context, r *protocol.Message) (map[string]string, []byte, error) {
+	logs.Debugf("-->>> gateway call Http2CallSendRaw by inprocessClient")
+	return nil, nil, ctx.Err()
 }
 
 func (client *inprocessClient) Register(name string, rcvr interface{}, metadata string) (err error) {

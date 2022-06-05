@@ -1,6 +1,6 @@
 package client
 /*
-implement caller for cakeRabbit service
+implement caller for cakeRabbit service, use msgpack
 */
 
 import (

@@ -103,7 +103,9 @@ type RPCClient interface {
   IsShutdown() bool
 
   SetHttp2SvcNode(k string) error
+  Http2CallSendRaw(ctx context.Context, r *protocol.Message) (map[string]string, []byte, error)
   Http2Call(ctx context.Context, servicePath, serviceMethod string, args interface{}, reply interface{}) error
+  Http2CallGw(ctx context.Context, servicePath, serviceMethod string, args interface{}, reply interface{}) error
 }
 
 // Client represents a RPC client.
@@ -220,18 +222,20 @@ func (client *Client) IsShutdown() bool {
 }
 
 func (client *Client) SetHttp2SvcNode(k string) error {
+  logs.Debugf("-->>> client SetHttp2SvcNode...")
   svcNode := strings.Split(k, "@")
   if len(svcNode) > 1 {
     client.Http2SvcNode = svcNode[1]
   } else {
     client.Http2SvcNode = k
   }
+  logs.Debugf("after SetHttp2SvcNode client -->>> %+v", client)
   return nil
 }
 
 func (client *Client) Http2Call(ctx context.Context, servicePath, serviceMethod string, args interface{},
   reply interface{}) error {
-  logs.Debugf("=== call Http2Service ===")
+  logs.Debugf("=== call Http2Service Http2Call ===")
   /*
   // todo: for test ---------------------------
   data := `{"Greet": "hello-world"}`
@@ -255,6 +259,8 @@ func (client *Client) Http2Call(ctx context.Context, servicePath, serviceMethod 
   //  "name": "halokid",
   //})
   payload, err := json.Marshal(args)
+  //payload := args.([]byte)
+  //var err error
   logs.ErrorfCheck(err, "http2 client serialize payload error, args -->>> %+v", args)
 
   req, _ := http.NewRequest("POST", url, bytes.NewBuffer(payload))
@@ -274,6 +280,45 @@ func (client *Client) Http2Call(ctx context.Context, servicePath, serviceMethod 
   data, _ := ioutil.ReadAll(rsp.Body)
   log.Printf("http2 RPC response reply -->>> %+v", string(data))
   err = json.Unmarshal([]byte(data), reply)
+  return err
+}
+
+func (client *Client) Http2CallGw(ctx context.Context, servicePath, serviceMethod string, args interface{},
+  reply interface{}) error {
+  logs.Debugf("=== call Http2Service Http2CallGw ===")
+
+  clientx := http.Client{
+    Transport:     &http2.Transport{
+      AllowHTTP:  true,
+      DialTLS: func(network, addr string, cfg *tls.Config) (conn net.Conn, err error) {
+        return net.Dial(network, addr)
+      },
+    },
+  }
+  //url := "http://127.0.0.1:8972"
+  url := fmt.Sprintf("http://%s", client.Http2SvcNode)
+  //payload, err := json.Marshal(args)
+  payload := args.([]byte)
+  //var err error
+  //logs.ErrorfCheck(err, "http2 client serialize payload error, args -->>> %+v", args)
+
+  req, _ := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+  req.Header.Add("X-RPCX-ServicePath", servicePath)
+  req.Header.Add("X-RPCX-ServiceMethod", serviceMethod)
+  req.Header.Add("X-RPCX-SerializeType", "1")
+
+  rsp, _ := clientx.Do(req)
+  log.Printf("http2 RPC response -->>> %+v", rsp)
+  if rsp == nil {
+    logs.Errorf("-->>> http2 service %+v, %+v not response anything",
+      servicePath, client.Http2SvcNode)
+    return nil
+  }
+  defer rsp.Body.Close()
+
+  data, _ := ioutil.ReadAll(rsp.Body)
+  log.Printf("http2 RPC response reply -->>> %+v", string(data))
+  err := json.Unmarshal(data, reply)
   return err
 }
 
@@ -427,8 +472,13 @@ func (client *Client) call(ctx context.Context, servicePath, serviceMethod strin
 
 // SendRaw sends raw messages. You don't care args and replys.
 func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[string]string, []byte, error) {
-  ctx = context.WithValue(ctx, seqKey{}, r.Seq())
+  logs.Debugf("-->>> gateway call SendRaw...")
 
+  if client.option.Http2 {
+   return client.Http2CallSendRaw(ctx, r)
+  }
+
+  ctx = context.WithValue(ctx, seqKey{}, r.Seq())
   call := new(Call)
   call.Raw = true     // todo: 定义Raw为true， 服务端不会进行对数据的序列化
   call.ServicePath = r.ServicePath
@@ -475,8 +525,12 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
   client.mutex.Unlock()
 
   // todo: 这里是压缩， 不是用序列化方法， 假如采用加密方式， Encode 会加密请求的数据
+  logs.Debugf("Client.SendRaw request payload send server -->>> %+v", string(r.Payload))
   data := r.Encode() // 请求的所有数据转化为[]byte
-  _, err := client.Conn.Write(data)
+  // todo: 一共有两个 client.Conn.Write(data) 执行，一个是在SenfRaw 给gateway 调用, 一个是在 Client.Send() 给常规的client调用
+  // todo: 返回服务端结果的关键就是这个 client.Conn.Write(data), 关键是在client执行Connect的时候，其中的 c.r = bufio.NewReaderSize(conn, ReaderBuffsize)
+  // todo: 会实时从conn中读取server的返回，然后写入c.r，再通过 go.c.inpunt() 去读取c.r, 最后写入call.reply, 完成整个client到server的调用
+  _, err := client.Conn.Write(data)   // todo: if the service is only http2, here will panic, because the client.Conn is nil
   //logs.Debug("client.Conn.Write err -----------------", err)
   //logs.Debugff("done 4 ----------------- %+v", done)
   //logs.Debugff("call.Done 2 ----------------- %+v", call.Done)
@@ -539,6 +593,25 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
 
   // fixme: 设计缺陷， 这里return的根本就不是处理之后的m, payload， 因为假如是采用了加密方式的话， 这里的数据已经变了
   return m, payload, err
+}
+
+func (client *Client) Http2CallSendRaw(ctx context.Context, r *protocol.Message) (map[string]string, []byte, error) {
+  logs.Debugf("-->>> gateway call Http2CallSendRaw")
+  servicePath := r.ServicePath
+  ServiceMethod := r.ServiceMethod
+  var reply interface{}
+
+  logs.Debugf("before Http2CallSendRaw Http2Call reply -->>> %+v", reply)
+  client.Http2CallGw(ctx, servicePath, ServiceMethod, r.Payload, &reply)
+  //payload := map[string]string {
+  // "name": "halokid",
+  //}
+  //client.Http2Call(ctx, servicePath, ServiceMethod, payload, &reply)
+
+  logs.Debugf("after Http2CallSendRaw Http2Call reply -->>> %+v", reply)
+  replyx, _ := json.Marshal(reply)
+
+  return nil, replyx, nil
 }
 
 func convertRes2Raw(res *protocol.Message) (map[string]string, []byte, error) {

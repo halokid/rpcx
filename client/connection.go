@@ -64,6 +64,8 @@ func (c *Client) Connect(network, address string) error {
 
 		c.Conn = conn
 		// todo: 这里是读取服务端返回数据的关键， c.r = bufio.NewReaderSize(conn, ReaderBuffsize)这样定义是表示从 conn 的返回之后获取数据, 这样的话在 server.go 的 serverConn 函数里面的 conn.Write(data) 就是直接把返回的数据写入这个 conn， 所以成功写入返回数据之后， c.r 的数据就会改变了，然后	input函数一直在一个gor运行， 就会不断读取这个 c.r， 读取到之后， 就会赋值给 call.Reply， 返回给客户端了
+		// todo: gateway的直接的 SendRaw 的逻辑之前觉得在client.Conn.Write()之后就没有获取返回服务端的返回，其实关键就是在这里，client.Conn.Write()发送给服务端
+		// todo: 之后， 这个 c.r 立即就获取了服务端的返回, 然后 go.c.input() 处理 c.r， 写入call.reply, 执行call.done()表示call已完成
 		c.r = bufio.NewReaderSize(conn, ReaderBuffsize)
 		//logs.Debugf("len: client.r 1 ---------------------  %+v", c.r)
 		//c.w = bufio.NewWriterSize(conn, WriterBuffsize)
