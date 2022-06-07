@@ -250,14 +250,15 @@ func (client *Client) Http2Call(ctx context.Context, servicePath, serviceMethod 
   //}
   //http2.ConfigureTransport(t1)
 
-  clientx := http.Client{
+  clientx := &http.Client{
     Transport:     &http2.Transport{
       AllowHTTP:  true,
       DialTLS: func(network, addr string, cfg *tls.Config) (conn net.Conn, err error) {
-        return net.Dial(network, addr)
+        //return net.Dial(network, addr)
+        return net.DialTimeout(network, addr, 5 * time.Second)
       },
     },
-    Timeout: 3 * time.Second,
+    //Timeout: 3 * time.Second,
   }
 
   // todo: http2 client request timeout is not the same as http1
@@ -278,10 +279,11 @@ func (client *Client) Http2Call(ctx context.Context, servicePath, serviceMethod 
   req.Header.Add("X-RPCX-ServiceMethod", serviceMethod)
   req.Header.Add("X-RPCX-SerializeType", "1")
 
+  logs.Debugf("-->>> Http2Call start request server %+v", url)
   rsp, _ := clientx.Do(req)
-  logs.Debugf("http2 RPC response -->>> %+v", rsp)
+  logs.Debugf("Http2Call RPC response -->>> %+v", rsp)
   if rsp == nil {
-    logs.Errorf("-->>> http2 service %+v, %+v not response anything",
+    logs.Errorf("-->>> Http2Call service %+v, %+v not response anything",
       servicePath, client.Http2SvcNode)
     return nil
   }
