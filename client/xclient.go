@@ -894,7 +894,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 		logs.Debugf("Failover模式 retries --------- %+v ", retries)
 		for retries >= 0 {
 			retries--
-			logs.Info("Failover模式 client --------- %+v ", client)
+			logs.Infof("Failover模式 client --------- %+v ", client)
 			if client != nil {
 				//logs.Info("client Failover ----- %+v", client)
 				m, payload, err := client.SendRaw(ctx, r)
@@ -917,6 +917,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 			}
 			//select another server
 			// todo: 这里会重新调用Selector 的 Select方法， 从新选择另外的节点, 默认的Selector 是 roundRobinSelector
+			logs.Debugf("-->>> Failover模式 choose another service node!")
 			k, client, e = c.selectClient(ctx, r.ServicePath, r.ServiceMethod, r.Payload)
 		}
 

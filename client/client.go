@@ -17,7 +17,7 @@ import (
   "golang.org/x/net/http2"
   "io"
   "io/ioutil"
-  "log"
+  //"log"
   "net"
   "net/http"
   "net/url"
@@ -245,6 +245,11 @@ func (client *Client) Http2Call(ctx context.Context, servicePath, serviceMethod 
   // -----------------------------------------
   */
 
+  //t1 := &http.Transport{
+  //  ExpectContinueTimeout: 3*time.Second, // for example
+  //}
+  //http2.ConfigureTransport(t1)
+
   clientx := http.Client{
     Transport:     &http2.Transport{
       AllowHTTP:  true,
@@ -252,7 +257,12 @@ func (client *Client) Http2Call(ctx context.Context, servicePath, serviceMethod 
         return net.Dial(network, addr)
       },
     },
+    Timeout: 3 * time.Second,
   }
+
+  // todo: http2 client request timeout is not the same as http1
+  //timeout := time.Duration(Http2CallTimeout) * time.Second
+  //clientx.Timeout = timeout
   //url := "http://127.0.0.1:8972"
   url := fmt.Sprintf("http://%s", client.Http2SvcNode)
   //payload, err := json.Marshal(map[string]string {
@@ -269,7 +279,7 @@ func (client *Client) Http2Call(ctx context.Context, servicePath, serviceMethod 
   req.Header.Add("X-RPCX-SerializeType", "1")
 
   rsp, _ := clientx.Do(req)
-  log.Printf("http2 RPC response -->>> %+v", rsp)
+  logs.Debugf("http2 RPC response -->>> %+v", rsp)
   if rsp == nil {
     logs.Errorf("-->>> http2 service %+v, %+v not response anything",
       servicePath, client.Http2SvcNode)
@@ -278,7 +288,7 @@ func (client *Client) Http2Call(ctx context.Context, servicePath, serviceMethod 
   defer rsp.Body.Close()
 
   data, _ := ioutil.ReadAll(rsp.Body)
-  log.Printf("http2 RPC response reply -->>> %+v", string(data))
+  logs.Debugf("http2 RPC response reply -->>> %+v", string(data))
   err = json.Unmarshal([]byte(data), reply)
   return err
 }
@@ -287,6 +297,11 @@ func (client *Client) Http2CallGw(ctx context.Context, servicePath, serviceMetho
   reply interface{}) error {
   logs.Debugf("=== call Http2Service Http2CallGw ===")
 
+  //t1 := &http.Transport{
+  //  ExpectContinueTimeout: 3*time.Second, // for example
+  //}
+  //http2.ConfigureTransport(t1)
+
   clientx := http.Client{
     Transport:     &http2.Transport{
       AllowHTTP:  true,
@@ -294,7 +309,11 @@ func (client *Client) Http2CallGw(ctx context.Context, servicePath, serviceMetho
         return net.Dial(network, addr)
       },
     },
+    Timeout:  3 * time.Second,
   }
+
+  //timeout := time.Duration(Http2CallTimeout) * time.Second
+  //clientx.Timeout = timeout
   //url := "http://127.0.0.1:8972"
   url := fmt.Sprintf("http://%s", client.Http2SvcNode)
   //payload, err := json.Marshal(args)
@@ -308,7 +327,7 @@ func (client *Client) Http2CallGw(ctx context.Context, servicePath, serviceMetho
   req.Header.Add("X-RPCX-SerializeType", "1")
 
   rsp, _ := clientx.Do(req)
-  log.Printf("http2 RPC response -->>> %+v", rsp)
+  logs.Debugf("gateway http2 RPC response -->>> %+v", rsp)
   if rsp == nil {
     logs.Errorf("-->>> http2 service %+v, %+v not response anything",
       servicePath, client.Http2SvcNode)
@@ -317,7 +336,7 @@ func (client *Client) Http2CallGw(ctx context.Context, servicePath, serviceMetho
   defer rsp.Body.Close()
 
   data, _ := ioutil.ReadAll(rsp.Body)
-  log.Printf("http2 RPC response reply -->>> %+v", string(data))
+  logs.Debugf("gateway http2 RPC response reply -->>> %+v", string(data))
   err := json.Unmarshal(data, reply)
   return err
 }
@@ -610,6 +629,10 @@ func (client *Client) Http2CallSendRaw(ctx context.Context, r *protocol.Message)
 
   logs.Debugf("after Http2CallSendRaw Http2Call reply -->>> %+v", reply)
   replyx, _ := json.Marshal(reply)
+
+  if reply == nil {
+    return nil, replyx, errors.New("Http2CallSendRaw Http2Call reply is nil")
+  }
 
   return nil, replyx, nil
 }
