@@ -255,7 +255,7 @@ func (client *Client) Http2Call(ctx context.Context, servicePath, serviceMethod 
       AllowHTTP:  true,
       DialTLS: func(network, addr string, cfg *tls.Config) (conn net.Conn, err error) {
         //return net.Dial(network, addr)
-        return net.DialTimeout(network, addr, 5 * time.Second)
+        return net.DialTimeout(network, addr, Http2CallTimeout * time.Second)
       },
     },
     //Timeout: 3 * time.Second,
@@ -285,7 +285,8 @@ func (client *Client) Http2Call(ctx context.Context, servicePath, serviceMethod 
   if rsp == nil {
     logs.Errorf("-->>> Http2Call service %+v, %+v not response anything",
       servicePath, client.Http2SvcNode)
-    return nil
+    //return nil
+    return errors.New("Client.Http2Call response is nil!")
   }
   defer rsp.Body.Close()
 
@@ -308,10 +309,11 @@ func (client *Client) Http2CallGw(ctx context.Context, servicePath, serviceMetho
     Transport:     &http2.Transport{
       AllowHTTP:  true,
       DialTLS: func(network, addr string, cfg *tls.Config) (conn net.Conn, err error) {
-        return net.Dial(network, addr)
+        //return net.Dial(network, addr)
+        return net.DialTimeout(network, addr, Http2CallTimeout * time.Second)
       },
     },
-    Timeout:  3 * time.Second,
+    //Timeout:  3 * time.Second,
   }
 
   //timeout := time.Duration(Http2CallTimeout) * time.Second

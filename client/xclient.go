@@ -398,6 +398,53 @@ func (c *xClient) selectClient(ctx context.Context, servicePath, serviceMethod s
 	return k, client, err
 }
 
+// todo: improve version of the selectCLient, if the select node is the same as previous, just
+// todo: select again
+func (c *xClient) selectClientNoRepeat(ctx context.Context, servicePath, serviceMethod string, args interface{}, previous string) (string, RPCClient, error) {
+	//logs.Debug("selectClient ---------------")
+	//logs.Debug("servers ---------------", c.servers)
+	c.mu.Lock()
+	k := c.selector.Select(ctx, servicePath, serviceMethod, args)
+	c.mu.Unlock()
+	if k == "" {
+		return "", nil, ErrXClientNoServer
+	}
+
+	// check previous
+	if k == previous {
+		/*
+		logs.Debugf("-->>> selectClientNoRepeat select again, repeat k: %+v," +
+			" previous: %+v ", k, previous)
+		k = c.selector.Select(ctx, servicePath, serviceMethod, args)
+		logs.Debugf("selectClientNoRepeat select again k -->>> %+v", k)
+		// check twice
+		if k == previous {
+			k = c.selector.Select(ctx, servicePath, serviceMethod, args)
+			logs.Warnf("twice selectClientNoRepeat select again k -->>> %+v", k)
+		}
+		*/
+		logs.Warnf("-->>> selectClientNoRepeat select again, repeat k: %+v," +
+			" previous: %+v ", k, previous)
+		var ks []string
+		logs.Debugf("len c.servers -->>> %+v", len(c.servers))
+		for kItem := range c.servers {
+			ks = append(ks, kItem)
+		}
+		logs.Debugf("ks -->>> %+v, len is %+v", ks, len(ks))
+		for _, ksItem := range ks {
+			logs.Debugf("ksItem -->>> %+v", ksItem)
+			if k != ksItem {
+				k = ksItem
+				break
+			}
+		}
+	}
+
+	client, err := c.getCachedClient(k)
+	client.SetHttp2SvcNode(k)			// set http2 service node
+	return k, client, err
+}
+
 // select a node addr with select stategry
 func (c *xClient) SelectNode(ctx context.Context, servicePath, serviceMethod string, args interface{}) string {
 	node := c.selector.Select(ctx, servicePath, serviceMethod, args)
@@ -657,12 +704,14 @@ func (c *xClient) Call(ctx context.Context, serviceMethod string, args interface
 		}
 		return err
 	case Failover:
+		logs.Debugf("-->>> xClient.Call case Failover ===")
 		retries := c.option.Retries
 		for retries >= 0 {
 			retries--
 
 			if client != nil {
 				err = c.wrapCall(ctx, client, serviceMethod, args, reply)
+				logs.Debugf("c.wrapCall err: %+v, retries: %+v", err, retries)
 				if err == nil {
 					return nil
 				}
@@ -671,11 +720,20 @@ func (c *xClient) Call(ctx context.Context, serviceMethod string, args interface
 				}
 			}
 
+			// todo: if fail node, need to removeClient use `k`key
+			if err != nil {
+				logs.Debugf("-->>> HTTP2 call err -->>> %+v, c.removeClient(k, client)", err)
+				c.removeClient(k, client)
+			}
+
 			if uncoverError(err) {
 				c.removeClient(k, client)
 			}
 			//select another server
-			k, client, e = c.selectClient(ctx, c.servicePath, serviceMethod, args)
+			//k, client, e = c.selectClient(ctx, c.servicePath, serviceMethod, args)
+			k, client, e = c.selectClientNoRepeat(ctx, c.servicePath, serviceMethod, args, k)
+			logs.Debugf("c.wrapCall reSelectClient k: %+v, client: %+v, e: %+v",
+				k, client, e)
 		}
 
 		if err == nil {

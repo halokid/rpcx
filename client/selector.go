@@ -18,6 +18,7 @@ import (
 type Selector interface {
 	Select(ctx context.Context, servicePath, serviceMethod string, args interface{}) string
 	UpdateServer(servers map[string]string)
+	//SelectNoRepeat(ctx context.Context, servicePath, serviceMethod string, args interface{}, previous string) string
 }
 
 func newSelector(selectMode SelectMode, servers map[string]string) Selector {
