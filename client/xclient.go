@@ -832,7 +832,8 @@ func callPySvc(svc, md, svcAddr string, params string) string {
 		"params": make(map[string]interface{}),				// 空map， 表示为{}
 		"id": "1",
 	}
-	rsp, err := req.Post("http://" + svcAddr + "/api")
+	urlApi := "http://" + svcAddr + "/api"
+	rsp, err := req.Post(urlApi)
 	ColorfulRabbit.CheckError(err, "调用服务失败", svcAddr)
 	//content, _ := rsp.Content()
 	js, _ := rsp.Json()
@@ -860,8 +861,8 @@ func uncoverError(err error) bool {
 func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]string, []byte, error) {
 	logs.Debugf("SendRaw c.servers ------------------- %+v", c.servers)
 	if len(c.servers) == 0 {
-		logs.Debugf("找不到服务节点信息 svc: %+v, md: %+v", r.ServicePath, r.ServiceMethod)
-		errMsg := fmt.Sprintf(`{"msg": "找不到服务节点信息 svc: %+v, md: %+v"}`, r.ServicePath, r.ServiceMethod)
+		logs.Debugf("-->>> can not find svc: %+v, md: %+v", r.ServicePath, r.ServiceMethod)
+		errMsg := fmt.Sprintf(`{"msg": "can not find svc: %+v, md: %+v"}`, r.ServicePath, r.ServiceMethod)
 		return nil, []byte(errMsg), errors.New(errMsg)
 	}
 
