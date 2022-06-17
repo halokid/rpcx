@@ -340,7 +340,7 @@ func (client *Client) Http2CallGw(ctx context.Context, servicePath, serviceMetho
   defer rsp.Body.Close()
 
   data, _ := ioutil.ReadAll(rsp.Body)
-  logs.Debugf("gateway http2 RPC response reply -->>> %+v", string(data))
+  logs.Tracef("gateway http2 RPC response reply -->>> %+v", string(data))
   err := json.Unmarshal(data, reply)
   return err
 }
@@ -631,7 +631,7 @@ func (client *Client) Http2CallSendRaw(ctx context.Context, r *protocol.Message)
   //}
   //client.Http2Call(ctx, servicePath, ServiceMethod, payload, &reply)
 
-  logs.Debugf("after Http2CallSendRaw Http2Call reply -->>> %+v", reply)
+  logs.Tracef("after Http2CallSendRaw Http2Call reply -->>> %+v", reply)
   replyx, _ := json.Marshal(reply)
 
   if reply == nil {

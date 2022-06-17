@@ -105,6 +105,14 @@ func Debugf(format string, v ...interface{}) {
 	l.Debugf(format, v...)
 }
 
+func Trace(v ...interface{}) {
+	l.Debug(v...)
+}
+
+func Tracef(format string, v ...interface{}) {
+	l.Debugf(format, v...)
+}
+
 func Info(v ...interface{}) {
 	l.Info(v...)
 }
