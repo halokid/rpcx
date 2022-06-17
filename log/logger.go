@@ -106,11 +106,11 @@ func Debugf(format string, v ...interface{}) {
 }
 
 func Trace(v ...interface{}) {
-	l.Debug(v...)
+	l.Trace(v...)
 }
 
 func Tracef(format string, v ...interface{}) {
-	l.Debugf(format, v...)
+	l.Tracef(format, v...)
 }
 
 func Info(v ...interface{}) {

@@ -76,14 +76,14 @@ func (l *LineColorLogger) Debugf(format string, v ...interface{}) {
 
 func (l *LineColorLogger) Trace(v ...interface{}) {
 	//l.Output(calldepth, header("DEBUG", fmt.Sprint(v...)))
-	if CheckLogLevel(DebugLevel) {
+	if CheckLogLevel(TraceLevel) {
 		l.Output(calldepth, lineColorHeader("\033[0;30m", "DEBUG ", fmt.Sprint(v...)))
 	}
 }
 
 func (l *LineColorLogger) Tracef(format string, v ...interface{}) {
 	//l.Output(calldepth, header("DEBUG", fmt.Sprintf(format, v...)))
-	if CheckLogLevel(DebugLevel) {
+	if CheckLogLevel(TraceLevel) {
 		l.Output(calldepth, lineColorHeader("\033[0;30m", "DEBUG ", fmt.Sprintf(format, v...)))
 	}
 }
