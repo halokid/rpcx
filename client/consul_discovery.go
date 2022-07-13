@@ -240,7 +240,7 @@ func (d *ConsulDiscovery) watch() {
           ch := ch
           go func() {
             defer func() {
-              if r := recover(); r != nil {
+              if r := recover(); r != any(nil) {
 
               }
             }()
