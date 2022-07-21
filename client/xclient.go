@@ -861,7 +861,7 @@ func uncoverError(err error) bool {
 func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]string, []byte, error) {
 	logs.Debugf("SendRaw c.servers ------------------- %+v", c.servers)
 	if len(c.servers) == 0 {
-		logs.Debugf("-->>> can not find svc: %+v, md: %+v", r.ServicePath, r.ServiceMethod)
+		logs.Errorf("-->>> can not find svc: %+v, md: %+v", r.ServicePath, r.ServiceMethod)
 		errMsg := fmt.Sprintf(`{"msg": "can not find svc: %+v, md: %+v"}`, r.ServicePath, r.ServiceMethod)
 		return nil, []byte(errMsg), errors.New(errMsg)
 	}
