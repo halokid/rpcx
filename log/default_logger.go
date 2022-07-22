@@ -77,14 +77,14 @@ func (l *defaultLogger) Debugf(format string, v ...interface{}) {
 func (l *defaultLogger) Trace(v ...interface{}) {
 	//l.Output(calldepth, header("DEBUG", fmt.Sprint(v...)))
 	if CheckLogLevel(TraceLevel) {
-		l.Output(calldepth, header(color.BlueString("DEBUG "), fmt.Sprint(v...)))
+		l.Output(calldepth, header(color.BlueString("TRACE "), fmt.Sprint(v...)))
 	}
 }
 
 func (l *defaultLogger) Tracef(format string, v ...interface{}) {
 	//l.Output(calldepth, header("DEBUG", fmt.Sprintf(format, v...)))
 	if CheckLogLevel(TraceLevel) {
-		l.Output(calldepth, header(color.BlueString("DEBUG "), fmt.Sprintf(format, v...)))
+		l.Output(calldepth, header(color.BlueString("TRACE "), fmt.Sprintf(format, v...)))
 	}
 }
 
