@@ -485,7 +485,10 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 	// todo:  k不命中， 则client 为 nil, 这里更多的价值只是声明client类型
 	client = c.cachedClient[k]
 	if client == nil || client.IsShutdown() {
+		// todo: the network decide the protocol to connect, important!!!
+		// todo: check the service use what protocol(http2, tpc etc.)
 		network, addr := splitNetworkAndAddress(k)
+		logs.Infof("client connect service network protocol: %+v, address: %+v", network, addr)
 		if network == "inprocess" {
 			client = InprocessClient
 		} else {
@@ -963,7 +966,7 @@ func (c *xClient) SendRaw(ctx context.Context, r *protocol.Message) (map[string]
 					//logs.Info("payload ----------------", string(payload))
 					return m, payload, nil
 				} else {
-					logs.Errorf("[ERROR] ---------------- %+v", err.Error())
+					logs.Errorf("-->>> %+v", err.Error())
 				}
 				
 				if _, ok := err.(ServiceError); ok {

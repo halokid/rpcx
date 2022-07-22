@@ -191,11 +191,25 @@ func (s *Server) startShutdownListener() {
   }(s)
 }
 
-func (s *Server) ServeHttp2(network, address string) {
+func (s *Server) UnifyServe(network, address string) {
+  logs.Infof("-->>> UnifyServe network: %+v, address: %+v", network, address)
+  switch network {
+  case "tcp":
+    s.Serve(network, address)
+  case "http2":
+    s.ServeHttp2(network, address)
+
+  default:
+    s.ServeHttp2(network, address)
+  }
+}
+
+func (s *Server) ServeHttp2(network, address string) (err error) {
   logs.Debugf("=== http2 service ===")
   //return s.serveByHTTP2(address)
   s.serveByHTTP2(address)
   logs.Debugf("=== pass serveByHTTP2, service error ===")
+  return nil
 }
 
 // Serve starts and listens RPC requests.

@@ -635,7 +635,7 @@ func (client *Client) Http2CallSendRaw(ctx context.Context, r *protocol.Message)
   replyx, _ := json.Marshal(reply)
 
   if reply == nil {
-    return nil, replyx, errors.New("Http2CallSendRaw Http2Call reply is nil")
+    return nil, replyx, errors.New("Http2CallSendRaw Http2Call " + servicePath + ", method: " + ServiceMethod + " reply is nil")
   }
 
   return nil, replyx, nil
