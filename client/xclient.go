@@ -143,6 +143,8 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 	// todo: 初次获取服务节点列表数据
 	pairs := discovery.GetServices()
 	servers := make(map[string]string, len(pairs))
+	//logs.Debugf("NewXClient servers -->>> %+v", servers)
+	
 	/**
 	kCk := ""
 	for i, p := range pairs {
@@ -161,7 +163,13 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 
 	// todo: 定义servers， 修复相似服务名bug在这里
 	client.servers = servers
-	logs.Debugf("NewXClient建立初次获取client.servers --------------- %+v", client.servers)
+	logs.Debugf("NewXClient建立初次获取client.servers -->>> %+v", client.servers)
+
+	// todo: maybe add check service protocol here, we need to check servers value
+	if strings.Contains(pairs[0].Key, "http2") {
+		logs.Debugf("NewXClient create client is http2 -->>> %+v", client.servers)
+		client.option.Http2 = true
+	}
 	
 	// 检查第一个key属于什么typ
 	//serCk := servers[kCk]
@@ -327,11 +335,11 @@ func (c *xClient) Auth(auth string) {
 // todo: just update c.servers, not watch register nodes data change here.
 // todo: watch the nodes change, check node is proxy or not, and change the isReverseProxy property
 func (c *xClient) watch(ch chan []*KVPair) {
-	logs.Debugf("len ch --------------- %+v", len(ch))
+	logs.Debugf("len ch -->>> %+v", len(ch))
 	for pairs := range ch {
 
 		for k, v := range pairs {
-			logs.Debugf("pairs k, v ------- %+v, %+v", k, v)
+			logs.Debugf("pairs k: %+v, v: %+v", k, v)
 		}
 
 		servers := make(map[string]string, len(pairs))
@@ -343,11 +351,15 @@ func (c *xClient) watch(ch chan []*KVPair) {
 		c.servers = servers
 
 		//isReverseProxyTag := false
+		// todo: set the client tag mark client is http2, isReverseProxy
 		for k, v := range servers {
-			logs.Debugf("servers k, v ------- %+v, %+v", k, v)
+			logs.Debugf("servers k: %+v, v: %+v", k, v)
 			if !c.isReverseProxy && checkIsReverseProxy(v) {
 				logs.Debugf("--- change service [%s] isReverseProxy to true ---", c.servicePath)
 				c.isReverseProxy = true
+			}
+			if !c.option.Http2 && checkIsHttp2(v) {
+
 			}
 		}
 
@@ -367,6 +379,10 @@ func checkIsReverseProxy(val string) bool {
 			return true
 		}
 	}
+	return false
+}
+
+func checkIsHttp2(val string) bool {
 	return false
 }
 

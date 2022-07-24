@@ -226,8 +226,7 @@ func (d *ConsulDiscovery) watch() {
           if d.filter != nil && !d.filter(pair) {   // todo: 过滤掉一些已经禁止的节点
             continue
           }
-          logs.Debug("节点 %+v -------------- %+v, 节点key的val为: %+v",
-            i, p.Key, string(p.Value))
+          logs.Debugf("节点index %+v key -->>> %+v, key的val -->>> %+v", i, p.Key, string(p.Value))
           pairs = append(pairs, pair) // 一次loading所有的服务键值对(pairs)
         }
         // todo: ConsulDiscovery 存了两个有关于node service节点信息的数据， 一个是pairs, 一个是chans
