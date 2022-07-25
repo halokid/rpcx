@@ -354,12 +354,19 @@ func (c *xClient) watch(ch chan []*KVPair) {
 		// todo: set the client tag mark client is http2, isReverseProxy
 		for k, v := range servers {
 			logs.Debugf("servers k: %+v, v: %+v", k, v)
+			// check reverse
 			if !c.isReverseProxy && checkIsReverseProxy(v) {
-				logs.Debugf("--- change service [%s] isReverseProxy to true ---", c.servicePath)
+				//logs.Debugf("--- change service [%s] isReverseProxy to true ---", c.servicePath)
 				c.isReverseProxy = true
+				logs.Debugf("-->>> change Client c.isReverseProxy to: %+v", c)
 			}
-			if !c.option.Http2 && checkIsHttp2(v) {
-
+			// check protocol http2
+			if !c.option.Http2 && checkIsHttp2(k) {
+				c.option.Http2 = true
+				logs.Debugf("-->>> trueFlag change Client c.option.Http2 to: %+v", c)
+			} else if c.option.Http2 && !checkIsHttp2(k) {
+				c.option.Http2 = false
+				logs.Debugf("-->>> falseFlag change Client c.option.Http2 to: %+v", c)
 			}
 		}
 
@@ -383,6 +390,9 @@ func checkIsReverseProxy(val string) bool {
 }
 
 func checkIsHttp2(val string) bool {
+	if strings.Contains(val, "http2") {
+		return true
+	}
 	return false
 }
 
