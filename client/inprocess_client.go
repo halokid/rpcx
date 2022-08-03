@@ -152,6 +152,16 @@ func (client *inprocessClient) SetHttp2SvcNode(k string) error {
 	return nil
 }
 
+func (client *inprocessClient) HttpCall(ctx context.Context, servicePath, serviceMethod string, args interface{},
+	reply interface{}) error {
+	logs.Debugf("=== call HttpCall ===")
+	// todo: for test ---------------------------
+	data := `{"Greet": "hello-world"}`
+	err := json.Unmarshal([]byte(data), reply)
+	logs.Debugf("err: %+v, reply -->>> %+v", err, reply)
+	return nil
+}
+
 func (client *inprocessClient) Http2Call(ctx context.Context, servicePath, serviceMethod string, args interface{},
 	reply interface{}) error {
 	logs.Debugf("=== call Http2Call ===")

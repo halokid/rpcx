@@ -56,10 +56,10 @@ var DefaultOption = Option{
   RPCPath:        share.DefaultRPCPath,
   ConnectTimeout: 10 * time.Second,
   //ConnectTimeout: 2 * time.Second,
-  SerializeType:  protocol.MsgPack,
+  SerializeType: protocol.MsgPack,
   //SerializeType:  protocol.JSON,
-  CompressType:   protocol.None,
-  BackupLatency:  10 * time.Millisecond,
+  CompressType:  protocol.None,
+  BackupLatency: 10 * time.Millisecond,
 }
 
 // Breaker is a CircuitBreaker interface.
@@ -105,6 +105,7 @@ type RPCClient interface {
   SetHttp2SvcNode(k string) error
   Http2CallSendRaw(ctx context.Context, r *protocol.Message) (map[string]string, []byte, error)
   Http2Call(ctx context.Context, servicePath, serviceMethod string, args interface{}, reply interface{}) error
+  HttpCall(ctx context.Context, servicePath, serviceMethod string, args interface{}, reply interface{}) error
   Http2CallGw(ctx context.Context, servicePath, serviceMethod string, args interface{}, reply interface{}) error
 }
 
@@ -171,7 +172,8 @@ type Option struct {
   Heartbeat         bool
   HeartbeatInterval time.Duration
 
-  Http2             bool
+  Http2 bool
+  Http  bool
 }
 
 // Call represents an active RPC.
@@ -189,7 +191,7 @@ type Call struct {
 
 func (call *Call) done() {
   select {
-  case call.Done <- call:       // todo: 是这里重写了SendRaw的 call.Done
+  case call.Done <- call: // todo: 是这里重写了SendRaw的 call.Done
     // ok
   default:
     //logs.Debug("rpc: discarding Call reply due to insufficient Done chan capacity")
@@ -233,8 +235,74 @@ func (client *Client) SetHttp2SvcNode(k string) error {
   return nil
 }
 
+func (client *Client) HttpCallOldStyle(ctx context.Context, servicePath, serviceMethod string, args interface{},
+  reply interface{}) error {
+  // todo: for all language use http protocol, like rust, java etc.
+  logs.Debugf("=== call HttpService HttpCall ===")
+  clientx := &http.Client{}
+  clientx.Timeout = time.Duration(Http2CallTimeout * time.Second)
+  url := fmt.Sprintf("http://%s", client.Http2SvcNode)
+  payload, err := json.Marshal(args)
+  logs.ErrorfCheck(err, "http client serialize payload error, args -->>> %+v", args)
+
+  req, _ := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+  req.Header.Add("X-RPCX-ServicePath", servicePath)
+  req.Header.Add("X-RPCX-ServiceMethod", serviceMethod)
+  req.Header.Add("X-RPCX-SerializeType", "1")
+
+  logs.Debugf("-->>> HttpCall start request server %+v", url)
+  rsp, _ := clientx.Do(req)
+  logs.Debugf("HttpCall RPC response -->>> %+v", rsp)
+  if rsp == nil {
+    logs.Errorf("-->>> HttpCall service %+v, %+v not response anything",
+      servicePath, client.Http2SvcNode)
+    //return nil
+    return errors.New("Client.HttpCall response is nil!")
+  }
+  defer rsp.Body.Close()
+
+  data, _ := ioutil.ReadAll(rsp.Body)
+  logs.Debugf("http2 RPC response reply -->>> %+v", string(data))
+  err = json.Unmarshal([]byte(data), reply)
+  return err
+}
+
+func (client *Client) HttpCall(ctx context.Context, servicePath, serviceMethod string, args interface{},
+  reply interface{}) error {
+  // todo: for all language use http protocol, like rust, java etc.
+  logs.Debugf("=== call HttpService HttpCall ===")
+  clientx := &http.Client{}
+  clientx.Timeout = time.Duration(Http2CallTimeout * time.Second)
+  url := fmt.Sprintf("http://%s/%s", client.Http2SvcNode, serviceMethod)
+  logs.Infof("HttlCall url -->>> %+v", url)
+  payload, err := json.Marshal(args)
+  logs.ErrorfCheck(err, "http client serialize payload error, args -->>> %+v", args)
+
+  req, _ := http.NewRequest("POST", url, bytes.NewBuffer(payload))
+
+  logs.Debugf("-->>> HttpCall start request server %+v", url)
+  rsp, _ := clientx.Do(req)
+  logs.Debugf("HttpCall RPC response -->>> %+v", rsp)
+  if rsp == nil {
+    logs.Errorf("-->>> HttpCall service %+v, %+v not response anything",
+      servicePath, client.Http2SvcNode)
+    //return nil
+    return errors.New("Client.HttpCall response is nil!")
+  }
+  defer rsp.Body.Close()
+
+  data, _ := ioutil.ReadAll(rsp.Body)
+  logs.Debugf("http RPC response reply -->>> %+v", string(data))
+  err = json.Unmarshal([]byte(data), reply)
+  logs.Debugf("HttpCall reply -->>> %+v", reply)
+  logs.ErrorfCheck(err, "HttpCall err -->>> %+v", err)
+  return err
+}
+
 func (client *Client) Http2Call(ctx context.Context, servicePath, serviceMethod string, args interface{},
   reply interface{}) error {
+  // todo: now this is for the go service http2, the other language can check option.isGo
+  // todo: to decide the process(suggest process like the HttpCall)
   logs.Debugf("=== call Http2Service Http2Call ===")
   /*
   // todo: for test ---------------------------
@@ -251,11 +319,11 @@ func (client *Client) Http2Call(ctx context.Context, servicePath, serviceMethod 
   //http2.ConfigureTransport(t1)
 
   clientx := &http.Client{
-    Transport:     &http2.Transport{
-      AllowHTTP:  true,
+    Transport: &http2.Transport{
+      AllowHTTP: true,
       DialTLS: func(network, addr string, cfg *tls.Config) (conn net.Conn, err error) {
         //return net.Dial(network, addr)
-        return net.DialTimeout(network, addr, Http2CallTimeout * time.Second)
+        return net.DialTimeout(network, addr, Http2CallTimeout*time.Second)
       },
     },
     //Timeout: 3 * time.Second,
@@ -306,11 +374,11 @@ func (client *Client) Http2CallGw(ctx context.Context, servicePath, serviceMetho
   //http2.ConfigureTransport(t1)
 
   clientx := http.Client{
-    Transport:     &http2.Transport{
-      AllowHTTP:  true,
+    Transport: &http2.Transport{
+      AllowHTTP: true,
       DialTLS: func(network, addr string, cfg *tls.Config) (conn net.Conn, err error) {
         //return net.Dial(network, addr)
-        return net.DialTimeout(network, addr, Http2CallTimeout * time.Second)
+        return net.DialTimeout(network, addr, Http2CallTimeout*time.Second)
       },
     },
     //Timeout:  3 * time.Second,
@@ -367,7 +435,7 @@ func (client *Client) Go(ctx context.Context, servicePath, serviceMethod string,
   client.injectOpenCensusSpan(ctx, call)
 
   call.Args = args
-  call.Reply = reply      // todo: 这里已经初始化了reply的内存
+  call.Reply = reply // todo: 这里已经初始化了reply的内存
   logs.Debugf("call.Reply 1 -------------- %+v", call.Reply)
 
   if done == nil {
@@ -387,7 +455,7 @@ func (client *Client) Go(ctx context.Context, servicePath, serviceMethod string,
   logs.Debug("call 4: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", reflect.TypeOf(call), call, call.Args, call.Reply)
   logs.Debugf("client.send之前 call.Done --------- %+v", call.Done)
 
-  client.send(ctx, call)        // todo: 发送客户端请求给服务端
+  client.send(ctx, call) // todo: 发送客户端请求给服务端
 
   logs.Debug("client.send之后 call.Done --------- %+v", call.Done)
   logs.Debug("client.send 之后  call.Done channel就会写进数据, 然后就不会阻塞")
@@ -452,7 +520,7 @@ func (client *Client) injectOpenCensusSpan(ctx context.Context, call *Call) {
 func (client *Client) Call(ctx context.Context, servicePath, serviceMethod string, args interface{}, reply interface{}) error {
   // todo: http2 client call add here
   if client.option.Http2 {
-    	return client.Http2Call(ctx, servicePath, serviceMethod, args, reply)
+    return client.Http2Call(ctx, servicePath, serviceMethod, args, reply)
   }
 
   return client.call(ctx, servicePath, serviceMethod, args, reply)
@@ -478,7 +546,7 @@ func (client *Client) call(ctx context.Context, servicePath, serviceMethod strin
 
     return ctx.Err()
 
-  case call := <-Done:      // 当前的call已经完成
+  case call := <-Done: // 当前的call已经完成
     logs.Debug("从time.Now()得知这里是最后获取数据的 %+v call 3: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
     err = call.Error
     meta := ctx.Value(share.ResMetaDataKey)
@@ -498,12 +566,12 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
   logs.Debugf("-->>> gateway call SendRaw...")
 
   if client.option.Http2 {
-   return client.Http2CallSendRaw(ctx, r)
+    return client.Http2CallSendRaw(ctx, r)
   }
 
   ctx = context.WithValue(ctx, seqKey{}, r.Seq())
   call := new(Call)
-  call.Raw = true     // todo: 定义Raw为true， 服务端不会进行对数据的序列化
+  call.Raw = true // todo: 定义Raw为true， 服务端不会进行对数据的序列化
   call.ServicePath = r.ServicePath
   call.ServiceMethod = r.ServiceMethod
   meta := ctx.Value(share.ReqMetaDataKey)
@@ -531,7 +599,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
   // fixme: done的channel长度只有10， 可能这里是一个性能瓶颈
   done := make(chan *Call, 10)
   //logs.Debugff("done 1 ----------------- %+v", done)
-  call.Done = done          // todo： 某个gor改变call.Done 从而改变done, 可能是Go函数?
+  call.Done = done // todo： 某个gor改变call.Done 从而改变done, 可能是Go函数?
   //logs.Debugff("call.Done 1 ----------------- %+v", call.Done)
   //logs.Debugff("done 2 ----------------- %+v", done)
 
@@ -543,7 +611,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
   if client.pending == nil {
     client.pending = make(map[uint64]*Call)
   }
-  client.pending[seq] = call        // todo: 通过这里传入call， 有协程在监听pending，然后改变call的状态
+  client.pending[seq] = call // todo: 通过这里传入call， 有协程在监听pending，然后改变call的状态
   //logs.Debugff("done 3 ----------------- %+v", done)
   client.mutex.Unlock()
 
@@ -553,7 +621,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
   // todo: 一共有两个 client.Conn.Write(data) 执行，一个是在SenfRaw 给gateway 调用, 一个是在 Client.Send() 给常规的client调用
   // todo: 返回服务端结果的关键就是这个 client.Conn.Write(data), 关键是在client执行Connect的时候，其中的 c.r = bufio.NewReaderSize(conn, ReaderBuffsize)
   // todo: 会实时从conn中读取server的返回，然后写入c.r，再通过 go.c.inpunt() 去读取c.r, 最后写入call.reply, 完成整个client到server的调用
-  _, err := client.Conn.Write(data)   // todo: if the service is only http2, here will panic, because the client.Conn is nil
+  _, err := client.Conn.Write(data) // todo: if the service is only http2, here will panic, because the client.Conn is nil
   //logs.Debug("client.Conn.Write err -----------------", err)
   //logs.Debugff("done 4 ----------------- %+v", done)
   //logs.Debugff("call.Done 2 ----------------- %+v", call.Done)
@@ -599,7 +667,7 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
     }
     return nil, nil, ctx.Err()
 
-  case call := <-done:        // todo: 写入done channel的就是这个call请求本身
+  case call := <-done: // todo: 写入done channel的就是这个call请求本身
     logs.Debugf("---@@@------- <-done --------@@@--- %+v", done)
     //logs.Debugff("select call := <-done  %+v ----------------", call)
     err = call.Error
@@ -610,8 +678,8 @@ func (client *Client) SendRaw(ctx context.Context, r *protocol.Message) (map[str
       payload = call.Reply.([]byte)
     }
 
-  //default:
-  //logs.Debugf("done 5 ----------------- %+v", done)
+    //default:
+    //logs.Debugf("done 5 ----------------- %+v", done)
   }
 
   // fixme: 设计缺陷， 这里return的根本就不是处理之后的m, payload， 因为假如是采用了加密方式的话， 这里的数据已经变了
@@ -695,7 +763,7 @@ func (client *Client) send(ctx context.Context, call *Call) {
   // client.Conn.Write(data) 发送数据给服务端
   logs.Debugf("call 1: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", reflect.TypeOf(call), call, call.Args, call.Reply)
 
-  client.mutex.Lock()       // 锁住client， mutex作为一个锁句柄，放在client里面作为属性，方便调用
+  client.mutex.Lock() // 锁住client， mutex作为一个锁句柄，放在client里面作为属性，方便调用
   if client.shutdown || client.closing {
     call.Error = ErrShutdown
     client.mutex.Unlock()
@@ -718,7 +786,7 @@ func (client *Client) send(ctx context.Context, call *Call) {
 
   seq := client.seq
   client.seq++
-  client.pending[seq] = call        // todo: client正在处理的是当前的call, 把call加入client的pending列表
+  client.pending[seq] = call // todo: client正在处理的是当前的call, 把call加入client的pending列表
   client.mutex.Unlock()
 
   if cseq, ok := ctx.Value(seqKey{}).(*uint64); ok {
@@ -727,7 +795,7 @@ func (client *Client) send(ctx context.Context, call *Call) {
 
   //req := protocol.NewMessage()
   req := protocol.GetPooledMsg()
-  req.SetMessageType(protocol.Request)    // 设置数据类型是request
+  req.SetMessageType(protocol.Request) // 设置数据类型是request
   req.SetSeq(seq)
   if call.Reply == nil {
     logs.Debug("call.Reply is nil, 不需要服务端返回 run here!!! -------------")
@@ -776,7 +844,7 @@ func (client *Client) send(ctx context.Context, call *Call) {
   // todo: 2. 1建立连接之后， Connect函数的 c.r = bufio.NewReaderSize(conn, ReaderBuffsize)，会一直监听客户端和服务端连接的数据交互，只要服务端往客户端写数据， c.r就能获取到数据
   // todo: 3.  Connect函数的 go c.input() 一直在监听 client 的 接收数据， 处理接收数据， 然后把完成之后的call对象，写入本身这个call的 call.Done 属性, 然后client 的 call函数的 case call := <-Done: 就能获取chan 的输入， 完成整个client.call的流程
   // todo: 4.  那究竟是怎么把服务端的返回写入 call.Reply的呢？ 在 c.input函数里面， 通过 call = client.pending[seq]  取得每一次的call对象， 再通过 err = codec.Decode(data, call.Reply)，赋值给call.Reply, 然后因为开始客户端定义 reply := &Reply{},  是一个引用指针， 当 call.Reply = reply的时候， call.Reply 承接了这个指针， 当改变  call.Reply 的值时， 就会改变 &Reply{}, 就会改变 reply， 所以客户端可以用reply来捕获服务端的输出, 具体的范例在 testWriteToReply
-  _, err := client.Conn.Write(data)   // todo: 向连接服务端的conn写入数据
+  _, err := client.Conn.Write(data) // todo: 向连接服务端的conn写入数据
 
   logs.Debugf("%+v call 7: %+v ==> %+v ==> %+v ==> %+v \n <===== one client call done =====>\n\n", time.Now(), reflect.TypeOf(call), call, call.Args, call.Reply)
 
@@ -836,7 +904,6 @@ func (client *Client) input() {
       client.Conn.SetReadDeadline(time.Now().Add(client.option.ReadTimeout))
     }
 
-
     //logs.Debugf("res.Payload 1 --------------------- %+v", res.Payload)
     //logs.Debugf("len: client.r 2 ---------------------  %+v", client.r)
     //logs.Debugf("res.data 1 ---------------------  %+v", res)
@@ -864,14 +931,15 @@ func (client *Client) input() {
       client.mutex.Lock()
       // fixme: 如果这个seq是一样的， 会不会不同的处理请求，取得了同一个call？？gateway现在的sep是一样的， 这个要验证下， 如果取得了同一个call的话，可能会产生 call对象错乱的问题， 而造成数据错误, 目前client/serqver模式没有这个问题
       // todo: 通过这里取得call对象，然后把 服务端的返回写入 call.Reply
-      call = client.pending[seq]      // todo: 取得在SendRaw的时候写入的pending call
+      call = client.pending[seq] // todo: 取得在SendRaw的时候写入的pending call
       delete(client.pending, seq)
       client.mutex.Unlock()
     }
 
     //logs.Debugf("call.Reply 1 --------------------- %+v", call.Reply)
 
-    switch {    // todo: 协程重复执行 input()， 这个switch逻辑一会一直监听执行
+    switch {
+    // todo: 协程重复执行 input()， 这个switch逻辑一会一直监听执行
     case call == nil:
       logs.Debugf(" ========= go client.input() 1, call is nil ========")
       if isServerMessage {
@@ -925,7 +993,7 @@ func (client *Client) input() {
 
       }
 
-      call.done()       // todo: 更改call状态的逻辑, 把数据写入 call.Done 这个 chann, 触发 client.go 的 case call := <-Done 这段逻辑， 代表client的call完成
+      call.done() // todo: 更改call状态的逻辑, 把数据写入 call.Done 这个 chann, 触发 client.go 的 case call := <-Done 这段逻辑， 代表client的call完成
     }
   }
   // Terminate pending calls.
@@ -953,7 +1021,7 @@ func (client *Client) input() {
     client.pluginClosed = true
   }
 
-  client.Conn.Close()         // todo: client关闭与服务端的连接
+  client.Conn.Close() // todo: client关闭与服务端的连接
   client.shutdown = true
   closing := client.closing
   if err == io.EOF {
@@ -1031,9 +1099,14 @@ func (client *Client) Close() error {
     client.pluginClosed = true
     //err = client.Conn.Close()
 
-    if !client.option.Http2 {
+    // todo: if the service is http2/http, dont need to close the socket
+    if !client.option.Http2 && !client.option.Http {
       err = client.Conn.Close()
     }
+
+    //if !client.option.Http {
+    //  err = client.Conn.Close()
+    //}
   }
 
   if client.closing || client.shutdown {

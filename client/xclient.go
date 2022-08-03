@@ -55,7 +55,10 @@ type XClient interface {
 	Auth(auth string)
 
 	Go(ctx context.Context, serviceMethod string, args interface{}, reply interface{}, done chan *Call) (*Call, error)
+
+	// todo: the call we just check the protocol, not the framework name!
 	Call(ctx context.Context, serviceMethod string, args interface{}, reply interface{}) error
+
   CallNotGo(svc string, md string, pairs []*KVPair) string
 	Broadcast(ctx context.Context, serviceMethod string, args interface{}, reply interface{}) error
 	Fork(ctx context.Context, serviceMethod string, args interface{}, reply interface{}) error
@@ -169,6 +172,11 @@ func NewXClient(servicePath string, failMode FailMode, selectMode SelectMode, di
 	if strings.Contains(pairs[0].Key, "http2") {
 		logs.Debugf("NewXClient create client is http2 -->>> %+v", client.servers)
 		client.option.Http2 = true
+	}
+
+	if strings.Contains(pairs[0].Key, "http") && !strings.Contains(pairs[0].Key, "http2") {
+		logs.Debugf("NewXClient create client is http2 -->>> %+v", client.servers)
+		client.option.Http = true
 	}
 	
 	// 检查第一个key属于什么typ
@@ -544,6 +552,9 @@ func (c *xClient) getCachedClient(k string) (RPCClient, error) {
 			var err error
 			if c.option.Http2 {
 				logs.Debugf("-->>> run client http2 call, dont need Connect server")
+				err = nil
+			} else if c.option.Http {
+				logs.Debugf("-->>> run client http call, dont need Connect server")
 				err = nil
 			} else {
 				logs.Debugf("-->>> run client normal call, need Connect server")
@@ -1035,6 +1046,11 @@ func (c *xClient) wrapCall(ctx context.Context, client RPCClient, serviceMethod 
 	logs.Debugf("wrapCall *xClient -->>> %+v", c)
 	if client == nil {
 		return ErrServerUnavailable
+	}
+
+	// todo: for http, dont need to process c.Connect.Write(data)
+	if c.option.Http {
+		return client.HttpCall(ctx, c.servicePath, serviceMethod, args, reply)
 	}
 
 	// todo: for http2, dont need to process c.Connect.Write(data)
