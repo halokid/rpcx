@@ -1098,10 +1098,12 @@ func (client *Client) Close() error {
 
     client.pluginClosed = true
     //err = client.Conn.Close()
+    //logs.Debugf("-->>> Client Close() 1...")
 
     // todo: if the service is http2/http, dont need to close the socket
     if !client.option.Http2 && !client.option.Http {
-      err = client.Conn.Close()
+     logs.Debugf("-->>> Client Close() 2...")
+     err = client.Conn.Close()
     }
 
     //if !client.option.Http {

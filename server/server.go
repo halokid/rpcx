@@ -501,7 +501,8 @@ func (s *Server) serveConn(conn net.Conn) {
       // todo: 在这个方法里会调用序列化配适器来处理数据
       res, err := s.handleRequest(newCtx, req) // todo: 这里调用实际的服务方法， 服务和方法的逻辑是在服务端执行的，并返回给客户端
       //logs.Debug("No Heartbeat res: %+v, res.Payload: %+v, err: %+v", res, string(res.Payload[:]), err)
-      logs.Debugf("No Heartbeat res, res.Payload: %+v, err: %+v", string(res.Payload[:]), err)
+      //logs.Debugf("No Heartbeat res, res.Payload: %+v, err: %+v", string(res.Payload[:]), err)
+      logs.Debugf("No Heartbeat res, res.Payload len: %+v, err: %+v", len(res.Payload[:]), err)
 
       if err != nil {
         logs.Warnf("rpcx: failed to handle request: %v", err)
@@ -526,7 +527,8 @@ func (s *Server) serveConn(conn net.Conn) {
           res.SetCompressType(req.CompressType())
         }
         data := res.Encode()
-        logs.Debugf("No Heartbeat data: %+v", string(data[:]))
+        //logs.Debugf("No Heartbeat data: %+v", string(data[:]))
+        logs.Debugf("No Heartbeat data len: %+v", len(data[:]))
         //logx.Printf("No Heartbeat data: %+v", string(data[:]))
         conn.Write(data) // todo: res就是在服务端执行的结果，这里是把结果写回给客户端， 假如注释，client就会一直阻塞在监听服务端的返回
         //res.WriteTo(conn)
@@ -638,7 +640,8 @@ func (s *Server) handleRequest(ctx context.Context, req *protocol.Message) (res 
 
   if !req.IsOneway() {
     data, err := codec.Encode(replyv) // todo: 按照客户端定义的编码方式encode
-    logs.Debugf("No Oneway 写入反射的replyv ------ %+v", replyv)
+    //logs.Debugf("No Oneway 写入反射的replyv ------ %+v", replyv)
+    logs.ErrorfCheck(err, "No Oneway 写入反射的replyv err -->>> %+v", err)
     argsReplyPools.Put(mtype.ReplyType, replyv) // fixme: 写入一个argsReply的池，即使不写入，客户端依然可以获取服务端的返回，暂时不清楚作用
     if err != nil {
       return handleError(res, err)
