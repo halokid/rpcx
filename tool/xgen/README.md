@@ -8,7 +8,7 @@ It search structs in your specified files and add them as services. Currently it
 
 ```sh
 # install
-go get -u github.com/smallnest/rpcx/tool/xgen/...
+go get -u github.com/halokid/rpcx-plus/tool/xgen/...
 
 # run
 xgen -o server.go <file>.go
