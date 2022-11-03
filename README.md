@@ -35,7 +35,7 @@ if you GO111MODULE=on, you can do the same thing in your $GOPATH/pkg folder
 
 ## Update
 ```shell script
-cd  $GOPATH/github.com/smallnest/rpcx && git pull
+cd  $GOPATH/github.com/halokid/rpcx-plus && git pull
 ```
 
 Enjoy!
